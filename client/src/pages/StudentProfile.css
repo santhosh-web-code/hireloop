@@ -1,0 +1,350 @@
+/* Stylesheet for StudentProfile page under the HireLoop design token system */
+
+.profile-page {
+  min-height: 100vh;
+  background-color: var(--paper) !important;
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.profile-title-area {
+  text-align: left;
+}
+
+.profile-title {
+  font-family: var(--font-display) !important;
+  color: var(--navy-deep) !important;
+  font-size: 28px !important;
+  font-weight: 600;
+  margin: 0 0 6px 0 !important;
+}
+
+.profile-subtitle {
+  color: var(--slate) !important;
+  font-family: var(--font-body) !important;
+  font-size: 14px !important;
+  margin: 0 !important;
+}
+
+.btn-back {
+  background-color: var(--white) !important;
+  border: 1px solid var(--slate-light) !important;
+  color: var(--navy-deep) !important;
+  border-radius: var(--radius-sharp) !important;
+  padding: 10px 18px !important;
+  font-size: 14px !important;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  font-family: var(--font-body) !important;
+  transition: background-color 0.15s ease;
+}
+
+.btn-back:hover {
+  background-color: var(--slate-bg) !important;
+}
+
+/* Account info card */
+.account-info-card {
+  background-color: var(--white) !important;
+  border: 1px solid var(--slate-light) !important;
+  border-radius: var(--radius-card) !important;
+  padding: 20px 24px !important;
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.account-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+
+.account-info-item {
+  text-align: left;
+}
+
+.account-info-label {
+  font-size: 11px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--slate) !important;
+  margin-bottom: 4px;
+  font-family: var(--font-body) !important;
+}
+
+.account-info-value {
+  font-size: 15px !important;
+  font-weight: 600;
+  color: var(--navy-deep) !important;
+  font-family: var(--font-body) !important;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.badge-verified {
+  color: var(--success) !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px !important;
+  font-weight: 600;
+}
+
+/* Main Profile Sections Layout */
+.profile-sections-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 992px) {
+  .profile-sections-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.profile-card {
+  background-color: var(--white) !important;
+  border: 1px solid var(--slate-light) !important;
+  border-left: 4px solid var(--accent-gold) !important;
+  border-radius: var(--radius-card) !important;
+  padding: 32px !important;
+  box-shadow: 0 1px 3px rgba(15, 27, 45, 0.05) !important;
+  text-align: left;
+}
+
+.profile-card-title {
+  font-family: var(--font-display) !important;
+  color: var(--navy-deep) !important;
+  font-size: 20px !important;
+  font-weight: 600;
+  margin: 0 0 24px 0 !important;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--slate-light) !important;
+}
+
+/* Form inputs & grid inside card */
+.profile-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px 16px;
+}
+
+@media (max-width: 576px) {
+  .profile-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.profile-form-group {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.profile-form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.profile-label {
+  display: block;
+  color: var(--slate) !important;
+  font-size: 13px !important;
+  font-weight: 500;
+  margin-bottom: 6px;
+  font-family: var(--font-body) !important;
+}
+
+.profile-input {
+  width: 100%;
+  border: 1px solid var(--slate-light) !important;
+  border-radius: var(--radius-sharp) !important;
+  padding: 12px 14px;
+  font-family: var(--font-body) !important;
+  font-size: 15px !important;
+  background-color: var(--white) !important;
+  color: var(--navy-deep) !important;
+  outline: none;
+  transition: border-color 0.15s ease;
+  box-sizing: border-box;
+}
+
+.profile-input:focus {
+  border-color: var(--navy-mid) !important;
+}
+
+.profile-textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.resume-textarea {
+  min-height: 380px !important;
+  font-family: monospace !important;
+  font-size: 14px !important;
+  line-height: 1.5;
+}
+
+/* Skills tags list editable */
+.profile-skills-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.profile-skill-tag {
+  background-color: var(--slate-bg) !important;
+  border: 1px solid var(--slate-light) !important;
+  color: var(--navy-mid) !important;
+  padding: 4px 10px !important;
+  border-radius: var(--radius-sharp) !important;
+  font-size: 12px !important;
+  font-weight: 500;
+  font-family: var(--font-body) !important;
+}
+
+/* Character counter text */
+.char-count {
+  font-size: 12px !important;
+  color: var(--slate) !important;
+  text-align: right;
+  margin-top: 6px;
+  font-family: var(--font-body) !important;
+}
+
+/* Alert Notification message */
+.profile-alert {
+  padding: 12px 16px;
+  border-radius: var(--radius-sharp) !important;
+  font-size: 14px !important;
+  margin-bottom: 20px;
+  text-align: left;
+  font-family: var(--font-body) !important;
+}
+
+.profile-alert-error {
+  background-color: #FDF2F1 !important;
+  color: var(--danger) !important;
+  border-left: 3px solid var(--danger) !important;
+}
+
+.profile-alert-success {
+  background-color: #F0FDF4 !important;
+  color: var(--success) !important;
+  border-left: 3px solid var(--success) !important;
+}
+
+.btn-save {
+  background-color: var(--navy-deep) !important;
+  color: var(--white) !important;
+  border-radius: var(--radius-sharp) !important;
+  padding: 12px 24px !important;
+  font-weight: 600;
+  font-size: 15px !important;
+  border: none !important;
+  cursor: pointer;
+  margin-top: 24px;
+  width: 100%;
+  transition: background-color 0.15s ease;
+  font-family: var(--font-body) !important;
+}
+
+.btn-save:hover:not(:disabled) {
+  background-color: var(--navy-mid) !important;
+}
+
+.btn-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Upload area dropzone */
+.resume-upload-zone {
+  border: 2px dashed var(--slate-light) !important;
+  background-color: var(--slate-bg) !important;
+  border-radius: var(--radius-card) !important;
+  padding: 32px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.resume-upload-zone:hover {
+  border-color: var(--navy-mid) !important;
+  background-color: var(--white) !important;
+}
+
+.resume-upload-icon {
+  color: var(--slate) !important;
+}
+
+.resume-file-info {
+  background-color: var(--white) !important;
+  border: 1px solid var(--slate-light) !important;
+  border-radius: var(--radius-sharp) !important;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.btn-secondary-outline {
+  background-color: var(--white) !important;
+  border: 1px solid var(--navy-mid) !important;
+  color: var(--navy-deep) !important;
+  border-radius: var(--radius-sharp) !important;
+  padding: 10px 18px !important;
+  font-size: 14px !important;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-body) !important;
+  transition: all 0.15s ease;
+}
+
+.btn-secondary-outline:hover {
+  background-color: var(--navy-light) !important;
+}
+
+.resume-current-info {
+  background-color: var(--slate-bg) !important;
+  border: 1px solid var(--slate-light) !important;
+  border-radius: var(--radius-sharp) !important;
+  padding: 20px !important;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+  width: 100%;
+  box-sizing: border-box;
+}

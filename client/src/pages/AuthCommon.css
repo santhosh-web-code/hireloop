@@ -1,0 +1,153 @@
+/* Shared Stylesheet for Verification and Recovery Pages using the HireLoop design token system */
+
+.auth-page-v2 {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  background-color: var(--paper) !important;
+}
+
+.auth-card-v2 {
+  background-color: var(--white) !important;
+  border: 1px solid var(--slate-light) !important;
+  border-left: 4px solid var(--accent-gold) !important;
+  border-radius: var(--radius-card) !important;
+  width: 100%;
+  max-width: 420px;
+  padding: 40px;
+  box-shadow: 0 1px 3px rgba(15, 27, 45, 0.08) !important;
+  text-align: left;
+}
+
+.auth-eyebrow-v2 {
+  color: var(--slate) !important;
+  font-family: var(--font-body) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 12px;
+  margin-bottom: 8px;
+  text-align: left;
+  display: block;
+}
+
+.auth-title-v2 {
+  font-family: var(--font-display) !important;
+  color: var(--navy-deep) !important;
+  font-size: 28px !important;
+  font-weight: 600;
+  text-align: left;
+  margin: 0 0 24px 0;
+  line-height: 1.2;
+}
+
+.auth-form-group-v2 {
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.auth-label-v2 {
+  display: block;
+  color: var(--slate) !important;
+  font-size: 13px !important;
+  font-weight: 500;
+  margin-bottom: 6px;
+  font-family: var(--font-body) !important;
+}
+
+.auth-input-v2 {
+  width: 100%;
+  border: 1px solid var(--slate-light) !important;
+  border-radius: var(--radius-sharp) !important;
+  padding: 12px 14px;
+  font-family: var(--font-body) !important;
+  font-size: 15px !important;
+  background-color: var(--white) !important;
+  color: var(--navy-deep) !important;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.auth-input-v2:focus {
+  border-color: var(--navy-mid) !important;
+  box-shadow: none !important;
+}
+
+.auth-input-otp-v2 {
+  font-size: 24px !important;
+  letter-spacing: 0.3em !important;
+  text-align: center !important;
+  max-width: 200px !important;
+  display: block;
+  margin: 0 auto !important;
+}
+
+.auth-btn-v2 {
+  background-color: var(--navy-deep) !important;
+  color: var(--white) !important;
+  border-radius: var(--radius-sharp) !important;
+  padding: 13px;
+  font-weight: 600;
+  font-size: 15px !important;
+  border: none !important;
+  width: 100%;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: background-color 0.15s ease;
+  font-family: var(--font-body) !important;
+}
+
+.auth-btn-v2:hover:not(:disabled) {
+  background-color: var(--navy-mid) !important;
+}
+
+.auth-btn-v2:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.auth-link-v2 {
+  color: var(--navy-mid) !important;
+  text-decoration: none;
+  font-size: 14px !important;
+  transition: text-decoration 0.15s ease;
+  font-family: var(--font-body) !important;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.auth-link-v2:hover {
+  text-decoration: underline !important;
+}
+
+.auth-footer-v2 {
+  text-align: center;
+  margin-top: 24px;
+  font-size: 14px !important;
+  color: var(--slate) !important;
+  font-family: var(--font-body) !important;
+}
+
+.auth-alert-v2 {
+  padding: 10px 14px;
+  border-radius: var(--radius-sharp) !important;
+  font-size: 14px !important;
+  margin-bottom: 20px;
+  text-align: left;
+  font-family: var(--font-body) !important;
+}
+
+.auth-alert-error-v2 {
+  background-color: #FDF2F1 !important;
+  color: var(--danger) !important;
+  border-left: 3px solid var(--danger) !important;
+}
+
+.auth-alert-success-v2 {
+  background-color: #F0F9F4 !important;
+  color: var(--success) !important;
+  border-left: 3px solid var(--success) !important;
+}

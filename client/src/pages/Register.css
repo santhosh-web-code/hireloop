@@ -1,0 +1,223 @@
+/* Stylesheet for the updated Register page using the HireLoop design token system */
+
+.register-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  background-color: var(--paper) !important;
+}
+
+.register-card {
+  background-color: var(--white) !important;
+  border: 1px solid var(--slate-light) !important;
+  border-left: 4px solid var(--accent-gold) !important;
+  border-radius: var(--radius-card) !important;
+  width: 100%;
+  max-width: 640px;
+  padding: 40px;
+  box-shadow: 0 1px 3px rgba(15, 27, 45, 0.08) !important;
+  text-align: left;
+}
+
+.register-eyebrow {
+  color: var(--slate) !important;
+  font-family: var(--font-body) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 12px;
+  margin-bottom: 8px;
+  text-align: left;
+  display: block;
+}
+
+.register-title {
+  font-family: var(--font-display) !important;
+  color: var(--navy-deep) !important;
+  font-size: 28px !important;
+  font-weight: 600;
+  text-align: left;
+  margin: 0 0 24px 0;
+  line-height: 1.2;
+}
+
+.register-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px 16px;
+}
+
+.register-form-group {
+  margin-bottom: 0;
+  text-align: left;
+}
+
+.full-width {
+  grid-column: 1 / -1 !important;
+}
+
+@media (max-width: 640px) {
+  .register-form-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+.register-label {
+  display: block;
+  color: var(--slate) !important;
+  font-size: 13px !important;
+  font-weight: 500;
+  margin-bottom: 6px;
+  font-family: var(--font-body) !important;
+}
+
+.register-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.register-input-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--slate);
+  pointer-events: none;
+  transition: color 0.15s ease;
+}
+
+.register-input-wrapper:focus-within .register-input-icon {
+  color: var(--navy-mid);
+}
+
+.register-input {
+  width: 100%;
+  border: 1px solid var(--slate-light) !important;
+  border-radius: var(--radius-sharp) !important;
+  padding: 12px 14px;
+  font-family: var(--font-body) !important;
+  font-size: 15px !important;
+  background-color: var(--white) !important;
+  color: var(--navy-deep) !important;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.register-input-with-icon {
+  padding-left: 40px !important;
+}
+
+.register-input:focus {
+  border-color: var(--navy-mid) !important;
+  box-shadow: none !important;
+}
+
+/* Segmented Control for Role Selector */
+.role-segmented-control {
+  display: flex;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.role-segmented-btn {
+  flex: 1;
+  text-align: center;
+  padding: 10px 16px;
+  font-size: 14px !important;
+  font-weight: 500;
+  color: var(--slate) !important;
+  background-color: var(--white) !important;
+  border: 1px solid var(--slate-light) !important;
+  cursor: pointer;
+  outline: none;
+  margin-right: -1px; /* Overlap borders */
+  font-family: var(--font-body) !important;
+  transition: all 0.15s ease;
+}
+
+.role-segmented-btn:first-child {
+  border-radius: var(--radius-sharp) 0 0 var(--radius-sharp) !important;
+}
+
+.role-segmented-btn:nth-child(2) {
+  border-radius: 0 !important;
+}
+
+.role-segmented-btn:last-child {
+  border-radius: 0 var(--radius-sharp) var(--radius-sharp) 0 !important;
+  margin-right: 0;
+}
+
+.role-segmented-btn.active {
+  background-color: var(--navy-deep) !important;
+  color: var(--white) !important;
+  border-color: var(--navy-deep) !important;
+  z-index: 1; /* Bring selected borders to top */
+}
+
+.register-btn {
+  background-color: var(--navy-deep) !important;
+  color: var(--white) !important;
+  border-radius: var(--radius-sharp) !important;
+  padding: 13px;
+  font-weight: 600;
+  font-size: 15px !important;
+  border: none !important;
+  width: 100%;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: background-color 0.15s ease;
+  font-family: var(--font-body) !important;
+}
+
+.register-btn:hover:not(:disabled) {
+  background-color: var(--navy-mid) !important;
+}
+
+.register-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.register-link {
+  color: var(--navy-mid) !important;
+  text-decoration: none;
+  font-size: 14px !important;
+  transition: text-decoration 0.15s ease;
+  font-family: var(--font-body) !important;
+}
+
+.register-link:hover {
+  text-decoration: underline !important;
+}
+
+.register-footer {
+  text-align: center;
+  margin-top: 24px;
+  font-size: 14px !important;
+  color: var(--slate) !important;
+  font-family: var(--font-body) !important;
+}
+
+.register-alert {
+  padding: 10px 14px;
+  border-radius: var(--radius-sharp) !important;
+  font-size: 14px !important;
+  margin-bottom: 20px;
+  text-align: left;
+  font-family: var(--font-body) !important;
+}
+
+.register-alert-error {
+  background-color: #FDF2F1 !important;
+  color: var(--danger) !important;
+  border-left: 3px solid var(--danger) !important;
+}
+
+.register-alert-success {
+  background-color: #F0FDF4 !important;
+  color: var(--success) !important;
+  border-left: 3px solid var(--success) !important;
+}

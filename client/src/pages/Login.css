@@ -1,0 +1,155 @@
+/* Stylesheet for the updated Login page using the HireLoop design token system */
+
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  background-color: var(--paper) !important;
+}
+
+.login-card {
+  background-color: var(--white) !important;
+  border: 1px solid var(--slate-light) !important;
+  border-left: 4px solid var(--accent-gold) !important;
+  border-radius: var(--radius-card) !important;
+  width: 100%;
+  max-width: 420px;
+  padding: 40px;
+  box-shadow: 0 1px 3px rgba(15, 27, 45, 0.08) !important;
+  text-align: left;
+}
+
+.login-eyebrow {
+  color: var(--slate) !important;
+  font-family: var(--font-body) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 12px;
+  margin-bottom: 8px;
+  text-align: left;
+  display: block;
+}
+
+.login-title {
+  font-family: var(--font-display) !important;
+  color: var(--navy-deep) !important;
+  font-size: 28px !important;
+  font-weight: 600;
+  text-align: left;
+  margin: 0 0 24px 0;
+  line-height: 1.2;
+}
+
+.login-form-group {
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.login-label {
+  display: block;
+  color: var(--slate) !important;
+  font-size: 13px !important;
+  font-weight: 500;
+  margin-bottom: 6px;
+  font-family: var(--font-body) !important;
+}
+
+.login-input {
+  width: 100%;
+  border: 1px solid var(--slate-light) !important;
+  border-radius: var(--radius-sharp) !important;
+  padding: 12px 14px;
+  font-family: var(--font-body) !important;
+  font-size: 15px !important;
+  background-color: var(--white) !important;
+  color: var(--navy-deep) !important;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.login-input:focus {
+  border-color: var(--navy-mid) !important;
+  box-shadow: none !important;
+}
+
+.login-btn {
+  background-color: var(--navy-deep) !important;
+  color: var(--white) !important;
+  border-radius: var(--radius-sharp) !important;
+  padding: 13px;
+  font-weight: 600;
+  font-size: 15px !important;
+  border: none !important;
+  width: 100%;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: background-color 0.15s ease;
+  font-family: var(--font-body) !important;
+}
+
+.login-btn:hover:not(:disabled) {
+  background-color: var(--navy-mid) !important;
+}
+
+.login-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.login-link {
+  color: var(--navy-mid) !important;
+  text-decoration: none;
+  font-size: 14px !important;
+  transition: text-decoration 0.15s ease;
+  font-family: var(--font-body) !important;
+}
+
+.login-link:hover {
+  text-decoration: underline !important;
+}
+
+.login-footer {
+  text-align: center;
+  margin-top: 24px;
+  font-size: 14px !important;
+  color: var(--slate) !important;
+  font-family: var(--font-body) !important;
+}
+
+.login-alert {
+  background-color: #FDF2F1 !important;
+  color: var(--danger) !important;
+  border-left: 3px solid var(--danger) !important;
+  padding: 10px 14px;
+  border-radius: var(--radius-sharp) !important;
+  font-size: 14px !important;
+  margin-bottom: 20px;
+  text-align: left;
+  font-family: var(--font-body) !important;
+}
+
+/* Input Icons */
+.login-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.login-input-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--slate);
+  pointer-events: none;
+  transition: color 0.15s ease;
+}
+
+.login-input-wrapper:focus-within .login-input-icon {
+  color: var(--navy-mid);
+}
+
+.login-input-with-icon {
+  padding-left: 40px !important;
+}

@@ -1,0 +1,301 @@
+/* Stylesheet for TPODashboard page under the HireLoop design token system */
+
+.tpo-tabs-container {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid var(--slate-light) !important;
+}
+
+.tpo-tab-btn {
+  background: none !important;
+  border: none !important;
+  font-family: var(--font-body) !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  color: var(--slate) !important;
+  padding: 0 4px 12px 4px !important;
+  cursor: pointer;
+  border-bottom: 2px solid transparent !important;
+  transition: all 0.15s ease;
+  outline: none;
+}
+
+.tpo-tab-btn:hover {
+  color: var(--navy-deep) !important;
+}
+
+.tpo-tab-btn.active {
+  color: var(--navy-deep) !important;
+  font-weight: 600 !important;
+  border-bottom: 2px solid var(--navy-deep) !important;
+}
+
+/* Layout and Grid responsiveness overrides */
+.main-content {
+  max-width: 1400px !important;
+  margin: 0 auto !important;
+  padding: 32px 40px !important;
+  width: 100% !important;
+}
+
+.tpo-stats-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
+  gap: 20px !important;
+  margin-bottom: 2.5rem !important;
+}
+
+.dashboard-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)) !important;
+  gap: 20px !important;
+}
+
+@media (max-width: 640px) {
+  .main-content {
+    padding: 16px !important;
+  }
+  
+  .tpo-stats-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) !important;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+  }
+
+  /* Force table to not be like tables anymore */
+  .tpo-table, 
+  .tpo-table thead, 
+  .tpo-table tbody, 
+  .tpo-table th, 
+  .tpo-table td, 
+  .tpo-table tr { 
+    display: block !important; 
+  }
+  
+  /* Hide table headers */
+  .tpo-table thead tr { 
+    position: absolute !important;
+    top: -9999px !important;
+    left: -9999px !important;
+  }
+  
+  .tpo-table tr { 
+    border: 1px solid var(--slate-light) !important;
+    border-radius: var(--radius-card) !important;
+    background-color: var(--white) !important;
+    padding: 16px !important;
+    margin-bottom: 16px !important;
+    box-shadow: 0 1px 3px rgba(15, 27, 45, 0.04) !important;
+  }
+  
+  .tpo-table td { 
+    border: none !important;
+    border-bottom: 1px solid var(--slate-light) !important; 
+    position: relative !important;
+    padding: 12px 8px 12px 50% !important; 
+    text-align: right !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    min-height: 48px !important;
+  }
+  
+  .tpo-table td:last-child {
+    border-bottom: none !important;
+  }
+  
+  .tpo-table td::before { 
+    position: absolute !important;
+    left: 8px !important;
+    width: 45% !important; 
+    padding-right: 10px !important; 
+    white-space: nowrap !important;
+    text-align: left !important;
+    font-weight: 600 !important;
+    color: var(--slate) !important;
+    font-size: 13px !important;
+    content: attr(data-label) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .tpo-stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* All Applications Card Redesign */
+.tpo-app-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 600px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.tpo-app-card {
+  background-color: var(--white);
+  border: 1px solid var(--slate-light);
+  border-radius: var(--radius-card);
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(15, 27, 45, 0.02);
+}
+
+.tpo-app-card:hover {
+  border-color: var(--slate);
+  box-shadow: 0 4px 6px -1px rgba(15, 27, 45, 0.05);
+}
+
+.tpo-app-card-left {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tpo-app-card-middle {
+  flex: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tpo-app-card-right {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  text-align: right;
+}
+
+.tpo-app-card-name {
+  font-family: var(--font-display);
+  font-size: 16px;
+  color: var(--navy-deep);
+  font-weight: 600;
+  margin: 0;
+  text-align: left;
+}
+
+.tpo-app-card-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tpo-app-card-branch {
+  background-color: var(--slate-bg);
+  color: var(--slate);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.tpo-app-card-cgpa {
+  background-color: rgba(30, 58, 138, 0.05);
+  color: var(--navy-mid);
+  border: 1px solid rgba(30, 58, 138, 0.1);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.tpo-app-card-email {
+  color: var(--slate);
+  font-size: 12px;
+  text-align: left;
+}
+
+.tpo-app-card-company {
+  color: var(--navy-mid);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.tpo-app-card-title {
+  color: var(--navy-deep);
+  font-size: 15px;
+  font-weight: 500;
+  text-align: left;
+}
+
+.tpo-app-card-date {
+  color: var(--slate);
+  font-size: 12px;
+  text-align: left;
+}
+
+.tpo-app-card-score {
+  color: var(--slate);
+  font-size: 13px;
+}
+
+.tpo-app-card-btn {
+  margin-top: 6px;
+  border: 1px solid var(--navy-mid);
+  color: var(--navy-mid);
+  background-color: var(--card-bg);
+  padding: 6px 12px;
+  border-radius: var(--radius-sharp);
+  font-size: 12px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.tpo-app-card-btn:hover {
+  background-color: var(--navy-mid);
+  color: var(--white);
+}
+
+/* Responsive Overrides */
+@media (max-width: 640px) {
+  .tpo-app-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .tpo-app-card-left,
+  .tpo-app-card-middle,
+  .tpo-app-card-right {
+    flex: unset;
+    width: 100%;
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .tpo-app-card-right {
+    border-top: 1px dashed var(--slate-light);
+    padding-top: 12px;
+    gap: 8px;
+  }
+
+  .tpo-app-card-btn {
+    width: 100%;
+    text-align: center;
+    padding: 8px;
+    font-size: 13px;
+    margin-top: 4px;
+  }
+}

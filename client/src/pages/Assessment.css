@@ -1,0 +1,254 @@
+/* Stylesheet for Assessment Page under the HireLoop design token system */
+
+.assessment-page {
+  min-height: 100vh;
+  background-color: var(--paper) !important;
+  display: flex;
+  flex-direction: column;
+}
+
+.assessment-card {
+  background-color: var(--white) !important;
+  border: 1px solid var(--slate-light) !important;
+  border-left: 4px solid var(--accent-gold) !important;
+  border-radius: var(--radius-card) !important;
+  padding: 36px !important;
+  box-shadow: 0 4px 20px rgba(15, 27, 45, 0.05) !important;
+  text-align: left;
+  max-width: 720px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.assessment-intro-title {
+  font-family: var(--font-display) !important;
+  color: var(--navy-deep) !important;
+  font-size: 26px !important;
+  font-weight: 600;
+  margin: 0 0 12px 0 !important;
+}
+
+.assessment-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 16px;
+  margin: 24px 0;
+  padding: 16px;
+  background-color: var(--slate-bg) !important;
+  border-radius: var(--radius-sharp) !important;
+}
+
+.assessment-meta-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.assessment-meta-label {
+  font-size: 11px !important;
+  text-transform: uppercase;
+  color: var(--slate) !important;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.assessment-meta-value {
+  font-size: 16px !important;
+  color: var(--navy-deep) !important;
+  font-weight: 700;
+}
+
+.warning-box {
+  background-color: #FDF2F1 !important;
+  border-left: 3px solid var(--danger) !important;
+  padding: 14px 16px;
+  border-radius: var(--radius-sharp) !important;
+  color: var(--danger) !important;
+  font-size: 14px !important;
+  margin-bottom: 24px;
+  font-family: var(--font-body) !important;
+  line-height: 1.5;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+/* Taking assessment header & progress */
+.taking-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.timer-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: monospace !important;
+  font-size: 20px !important;
+  font-weight: 700;
+  color: var(--navy-deep) !important;
+  background-color: var(--white) !important;
+  padding: 8px 16px;
+  border-radius: var(--radius-sharp) !important;
+  border: 1px solid var(--slate-light) !important;
+}
+
+.timer-box.warning {
+  color: var(--danger) !important;
+  border-color: var(--danger) !important;
+  background-color: #FDF2F1 !important;
+  animation: timer-pulse 1s infinite alternate;
+}
+
+@keyframes timer-pulse {
+  from { opacity: 1; }
+  to { opacity: 0.8; }
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 6px;
+  background-color: var(--slate-light) !important;
+  border-radius: 3px;
+  margin-bottom: 2rem;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background-color: var(--navy-deep) !important;
+  transition: width 0.3s ease;
+}
+
+/* Option Buttons styling as selectable cards */
+.options-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 24px 0;
+}
+
+.option-button {
+  background-color: var(--white) !important;
+  border: 1px solid var(--slate-light) !important;
+  border-radius: var(--radius-sharp) !important;
+  padding: 16px 20px !important;
+  font-size: 15px !important;
+  color: var(--navy-deep) !important;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  text-align: left;
+  transition: all 0.15s ease;
+  font-family: var(--font-body) !important;
+  width: 100%;
+}
+
+.option-button:hover:not(.selected) {
+  border-color: var(--navy-mid) !important;
+  background-color: var(--slate-bg) !important;
+}
+
+.option-button.selected {
+  background-color: var(--navy-deep) !important;
+  color: var(--white) !important;
+  border-color: var(--navy-deep) !important;
+}
+
+.option-prefix {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: var(--slate-bg) !important;
+  color: var(--navy-deep) !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px !important;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.option-button.selected .option-prefix {
+  background-color: var(--white) !important;
+  color: var(--navy-deep) !important;
+}
+
+/* Nav Bar at the bottom */
+.assessment-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 2rem;
+  gap: 16px;
+}
+
+/* Score displays in result phase */
+.result-container {
+  text-align: center;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.result-circle-outer {
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+  position: relative;
+}
+
+.result-circle-outer.passed {
+  background: conic-gradient(var(--success) var(--percentage), var(--slate-light) 0) !important;
+}
+
+.result-circle-outer.failed {
+  background: conic-gradient(var(--danger) var(--percentage), var(--slate-light) 0) !important;
+}
+
+.result-circle-inner {
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  background-color: var(--white) !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.result-score-num {
+  font-family: var(--font-display) !important;
+  color: var(--navy-deep) !important;
+  font-size: 32px !important;
+  font-weight: 800 !important;
+}
+
+.result-score-denom {
+  font-size: 14px !important;
+  color: var(--slate) !important;
+}
+
+.status-heading {
+  font-family: var(--font-display) !important;
+  font-size: 26px !important;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.status-heading.passed {
+  color: var(--success) !important;
+}
+
+.status-heading.failed {
+  color: var(--danger) !important;
+}
