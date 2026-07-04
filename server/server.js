@@ -1,4 +1,7 @@
-import './utils/loadEnv.js';
+// Load .env file only in development (not on Render/production)
+import { config } from 'dotenv';
+config(); // This safely loads .env if it exists, does nothing if it doesn't
+
 import checkEnv from './utils/checkEnv.js';
 checkEnv();
 
