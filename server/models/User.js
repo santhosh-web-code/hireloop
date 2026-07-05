@@ -96,6 +96,14 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  phone: {
+    type: String,
+    default: null,
+  },
+  isDisabled: {
+    type: Boolean,
+    default: false,
+  },
   otp: {
     type: String,
     default: null,
@@ -105,6 +113,10 @@ const userSchema = new mongoose.Schema({
     default: null,
   },
   createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+  updatedAt: {
     type: Date,
     default: Date.now,
   },

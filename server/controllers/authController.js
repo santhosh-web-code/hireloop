@@ -249,6 +249,10 @@ export const loginUser = async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
+    if (user.isDisabled) {
+      return res.status(403).json({ message: 'Your account has been disabled by the administrator.' });
+    }
+
     if (!user.isEmailVerified) {
       return res.status(403).json({
         message: 'Please verify your email first. Check your inbox for the OTP.',

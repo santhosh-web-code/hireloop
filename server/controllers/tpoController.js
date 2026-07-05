@@ -377,3 +377,116 @@ export const markAllNotificationsRead = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/tpo/students
+ * Returns detailed overview of all registered student profiles and application lists
+ */
+export const getStudentsListForSMS = async (req, res) => {
+  try {
+    const students = await User.find({ role: 'student' }).select('-password').sort({ createdAt: -1 });
+    
+    const results = [];
+    for (const student of students) {
+      const applications = await Application.find({ student: student._id }).populate({
+        path: 'jobDescription',
+        select: 'title companyName package'
+      });
+      
+      results.push({
+        student,
+        applications,
+        totalApplications: applications.length
+      });
+    }
+    
+    return res.status(200).json(results);
+  } catch (error) {
+    console.error('Error in getStudentsListForSMS:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+/**
+ * GET /api/tpo/student/:id
+ * Returns single student profile and applications
+ */
+export const getStudentDetailsByTPO = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const student = await User.findOne({ _id: id, role: 'student' }).select('-password');
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    const applications = await Application.find({ student: id }).populate({
+      path: 'jobDescription',
+      select: 'title companyName package'
+    });
+
+    return res.status(200).json({
+      student,
+      applications
+    });
+  } catch (error) {
+    console.error('Error in getStudentDetailsByTPO:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+/**
+ * PUT /api/tpo/student/:id
+ * Updates student profile details and isDisabled status by TPO admin
+ */
+export const editStudentByTPO = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      name,
+      email,
+      studentId,
+      branch,
+      cgpa,
+      backlogs,
+      passedOutYear,
+      phone,
+      isDisabled
+    } = req.body;
+
+    const student = await User.findOne({ _id: id, role: 'student' });
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    if (name !== undefined) student.name = name;
+    if (email !== undefined) student.email = email;
+    if (studentId !== undefined) student.studentId = studentId;
+    if (branch !== undefined) student.branch = branch;
+    if (cgpa !== undefined) student.cgpa = cgpa;
+    if (backlogs !== undefined) student.backlogs = backlogs;
+    if (passedOutYear !== undefined) student.passedOutYear = passedOutYear;
+    if (phone !== undefined) student.phone = phone;
+    if (isDisabled !== undefined) student.isDisabled = isDisabled;
+    
+    student.updatedAt = Date.now();
+
+    await student.save();
+
+    const applications = await Application.find({ student: id }).populate({
+      path: 'jobDescription',
+      select: 'title companyName package'
+    });
+
+    // Strip password from returned user object
+    const returnedStudent = student.toObject();
+    delete returnedStudent.password;
+
+    return res.status(200).json({
+      student: returnedStudent,
+      applications
+    });
+  } catch (error) {
+    console.error('Error in editStudentByTPO:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+

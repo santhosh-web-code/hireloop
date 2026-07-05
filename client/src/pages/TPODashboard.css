@@ -299,3 +299,39 @@
     margin-top: 4px;
   }
 }
+
+/* SMS Sidebar Layout Overrides */
+.tpo-layout-wrapper {
+  display: flex;
+  flex: 1;
+  flex-direction: row;
+}
+
+.tpo-sidebar {
+  width: 260px;
+  background-color: var(--bg-card);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 24px 16px;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .tpo-layout-wrapper {
+    flex-direction: column !important;
+  }
+  .tpo-sidebar {
+    width: 100% !important;
+    border-right: none !important;
+    border-bottom: 1px solid var(--border) !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    padding: 12px 16px !important;
+    gap: 12px !important;
+  }
+  .tpo-sidebar button {
+    white-space: nowrap !important;
+  }
+}
