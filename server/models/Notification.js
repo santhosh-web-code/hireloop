@@ -24,6 +24,19 @@ const notificationSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  rollNumber: {
+    type: String,
+    default: null,
+  },
+  changedFields: {
+    type: [String],
+    default: [],
+  },
+  details: [{
+    field: { type: String },
+    oldValue: { type: mongoose.Schema.Types.Mixed },
+    newValue: { type: mongoose.Schema.Types.Mixed }
+  }],
   isRead: {
     type: Boolean,
     default: false,

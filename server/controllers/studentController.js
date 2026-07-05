@@ -3,6 +3,7 @@ import JobDescription from '../models/JobDescription.js';
 import Application from '../models/Application.js';
 import Assessment from '../models/Assessment.js';
 import Notification from '../models/Notification.js';
+import EligibilityHistory from '../models/EligibilityHistory.js';
 
 /**
  * Student views Job Descriptions they qualify for, and those they don't with reasons.
@@ -204,9 +205,18 @@ export const updateProfile = async (req, res) => {
       resumeBase64,
       resumeFileName,
       resumeFileType,
+      phone,
+      email,
+      linkedin,
+      github
     } = req.body;
-    const updateData = {};
 
+    const oldUser = await User.findById(req.user.id);
+    if (!oldUser) {
+      return res.status(404).json({ message: 'Student user not found' });
+    }
+
+    const updateData = {};
     if (branch !== undefined) updateData.branch = branch;
     if (cgpa !== undefined) updateData.cgpa = cgpa;
     if (backlogs !== undefined) updateData.backlogs = backlogs;
@@ -221,6 +231,10 @@ export const updateProfile = async (req, res) => {
     if (resumeBase64 !== undefined) updateData.resumeBase64 = resumeBase64;
     if (resumeFileName !== undefined) updateData.resumeFileName = resumeFileName;
     if (resumeFileType !== undefined) updateData.resumeFileType = resumeFileType;
+    if (phone !== undefined) updateData.phone = phone;
+    if (email !== undefined) updateData.email = email;
+    if (linkedin !== undefined) updateData.linkedin = linkedin;
+    if (github !== undefined) updateData.github = github;
 
     const updatedUser = await User.findByIdAndUpdate(
       req.user.id,
@@ -228,11 +242,59 @@ export const updateProfile = async (req, res) => {
       { new: true, runValidators: true }
     ).select('-password');
 
-    if (!updatedUser) {
-      return res.status(404).json({ message: 'Student user not found' });
+    const auditFields = [
+      { key: 'cgpa', label: 'CGPA' },
+      { key: 'degreeCGPA', label: 'Degree CGPA' },
+      { key: 'resumeFileName', label: 'Resume File' },
+      { key: 'branch', label: 'Branch' },
+      { key: 'passedOutYear', label: 'Graduation Year' },
+      { key: 'phone', label: 'Phone' },
+      { key: 'email', label: 'Email' },
+      { key: 'linkedin', label: 'LinkedIn' },
+      { key: 'github', label: 'GitHub' }
+    ];
+
+    const details = [];
+    const changedFields = [];
+
+    auditFields.forEach(({ key, label }) => {
+      const oldVal = oldUser[key];
+      const newVal = updatedUser[key];
+      if (oldVal !== newVal) {
+        changedFields.push(label);
+        details.push({
+          field: label,
+          oldValue: oldVal === undefined || oldVal === null ? 'N/A' : oldVal,
+          newValue: newVal === undefined || newVal === null ? 'N/A' : newVal
+        });
+      }
+    });
+
+    const oldSkills = oldUser.skills || [];
+    const newSkills = updatedUser.skills || [];
+    const oldSkillsStr = [...oldSkills].sort().join(', ');
+    const newSkillsStr = [...newSkills].sort().join(', ');
+    if (oldSkillsStr !== newSkillsStr) {
+      changedFields.push('Skills');
+      details.push({
+        field: 'Skills',
+        oldValue: oldSkillsStr || 'None',
+        newValue: newSkillsStr || 'None'
+      });
     }
 
-    // 1. Re-check eligibility for all active applications (not Selected, not Rejected)
+    if (oldUser.resumeBase64 !== updatedUser.resumeBase64) {
+      if (!changedFields.includes('Resume File') && !changedFields.includes('Resume Document')) {
+        changedFields.push('Resume Document');
+        details.push({
+          field: 'Resume Document',
+          oldValue: oldUser.resumeFileName || 'None',
+          newValue: updatedUser.resumeFileName || 'New Upload'
+        });
+      }
+    }
+
+    // 1. Re-check eligibility for all active applications
     const activeApplications = await Application.find({
       student: req.user.id,
       status: { $nin: ['Selected', 'Rejected'] }
@@ -242,7 +304,6 @@ export const updateProfile = async (req, res) => {
       const jd = app.jobDescription;
       if (!jd) continue;
 
-      // Recheck criteria
       const isCGPAEligible = updatedUser.cgpa === null || updatedUser.cgpa === undefined || jd.minCGPA <= updatedUser.cgpa;
       const isBranchEligible = updatedUser.branch && jd.allowedBranches.includes(updatedUser.branch);
       const isBacklogEligible = updatedUser.backlogs === null || updatedUser.backlogs === undefined || jd.maxBacklogs >= updatedUser.backlogs;
@@ -250,28 +311,57 @@ export const updateProfile = async (req, res) => {
       const isCurrentlyEligible = isCGPAEligible && isBranchEligible && isBacklogEligible;
 
       let newStatus = app.status;
+      let reason = '';
       if (!isCurrentlyEligible) {
         newStatus = 'Not Eligible';
+        const reasons = [];
+        if (!isCGPAEligible) reasons.push(`CGPA is below minimum required ${jd.minCGPA}`);
+        if (!isBranchEligible) reasons.push(`Branch ${updatedUser.branch} is not allowed`);
+        if (!isBacklogEligible) reasons.push(`Backlogs count is above maximum allowed ${jd.maxBacklogs}`);
+        reason = reasons.join(', ');
       } else if (app.status === 'Not Eligible') {
         newStatus = 'Applied';
+        reason = 'Student updated profile and now meets all eligibility criteria';
       }
 
       if (newStatus !== app.status) {
+        const oldStatus = app.status;
         app.status = newStatus;
         app.updatedAt = Date.now();
         await app.save();
+
+        // Save eligibility history
+        const history = new EligibilityHistory({
+          student: req.user.id,
+          jobDescription: jd._id,
+          oldStatus,
+          newStatus,
+          reason
+        });
+        await history.save();
+
+        changedFields.push(`Eligibility - ${jd.companyName}`);
+        details.push({
+          field: `Eligibility - ${jd.companyName}`,
+          oldValue: oldStatus,
+          newValue: newStatus
+        });
       }
     }
 
-    // 2. Create a notification for TPO
-    const newNotification = new Notification({
-      recipient: 'tpo',
-      type: 'profile_update',
-      studentId: req.user.id,
-      studentName: updatedUser.name,
-      message: `${updatedUser.name} updated their profile. Branch: ${updatedUser.branch || 'N/A'}, CGPA: ${updatedUser.degreeCGPA || 'N/A'}, Backlogs: ${updatedUser.backlogs !== undefined ? updatedUser.backlogs : 'N/A'}`
-    });
-    await newNotification.save();
+    if (changedFields.length > 0) {
+      const newNotification = new Notification({
+        recipient: 'tpo',
+        type: 'profile_update',
+        studentId: req.user.id,
+        studentName: updatedUser.name,
+        rollNumber: updatedUser.studentId || 'N/A',
+        message: `${updatedUser.name} updated profile fields: ${changedFields.join(', ')}`,
+        changedFields,
+        details
+      });
+      await newNotification.save();
+    }
 
     return res.status(200).json(updatedUser);
   } catch (error) {

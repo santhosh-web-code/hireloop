@@ -37,6 +37,13 @@ const TPODashboard = () => {
   const [smsSortBy, setSmsSortBy] = useState('Newest');
   const [smsCurrentPage, setSmsCurrentPage] = useState(1);
   const [smsRowsPerPage, setSmsRowsPerPage] = useState(10);
+  
+  // Notification Center States
+  const [notifSearchQuery, setNotifSearchQuery] = useState('');
+  const [notifReadFilter, setNotifReadFilter] = useState('All');
+  const [notifFieldFilter, setNotifFieldFilter] = useState('All');
+  const [expandedNotifs, setExpandedNotifs] = useState({});
+  const [eligibilityHistory, setEligibilityHistory] = useState([]);
   const [stats, setStats] = useState({
     totalStudents: 0,
     totalHRs: 0,
@@ -72,6 +79,7 @@ const TPODashboard = () => {
         api.get('/tpo/hrs'),
         api.get('/tpo/students'),
         api.get('/tpo/notifications'),
+        api.get('/tpo/eligibility-history'),
       ]);
       setStats(statsRes.data);
       setPendingHRs(hrsRes.data || []);
@@ -80,6 +88,7 @@ const TPODashboard = () => {
       setApprovedHRs(activeHRsRes.data || []);
       setAllStudents(studentsRes.data || []);
       setNotifications(notificationsRes.data || []);
+      setEligibilityHistory(historyRes.data || []);
     } catch (err) {
       console.error(err);
       setError('Failed to fetch dashboard metrics.');
@@ -164,6 +173,15 @@ const TPODashboard = () => {
     try {
       const res = await api.put(`/tpo/notifications/${notificationId}/read`);
       setNotifications(notifications.map(n => n._id === notificationId ? res.data : n));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteNotification = async (notificationId) => {
+    try {
+      await api.delete(`/tpo/notifications/${notificationId}`);
+      setNotifications(notifications.filter(n => n._id !== notificationId));
     } catch (err) {
       console.error(err);
     }
@@ -551,6 +569,31 @@ const TPODashboard = () => {
           >
             🎓 Students
           </button>
+          <button
+            onClick={() => setActiveTab('notifications-center')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '12px 16px',
+              borderRadius: '8px',
+              background: activeTab === 'notifications-center' ? 'var(--navy-mid)' : 'transparent',
+              color: activeTab === 'notifications-center' ? 'white' : 'var(--text-primary)',
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: '600',
+              textAlign: 'left',
+              fontSize: '14px',
+              transition: 'all 0.2s'
+            }}
+          >
+            🔔 Notifications
+            {notifications.filter(n => !n.isRead).length > 0 && (
+              <span style={{ marginLeft: 'auto', background: 'var(--danger)', color: 'white', fontSize: '11px', padding: '2px 6px', borderRadius: '10px' }}>
+                {notifications.filter(n => !n.isRead).length}
+              </span>
+            )}
+          </button>
         </aside>
 
         {/* Right Content Panel */}
@@ -730,182 +773,269 @@ const TPODashboard = () => {
           </div>
         ) : (
           <>
-            {/* OVERVIEW TAB */}
             {activeTab === 'overview' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                <div className="tpo-stats-grid">
-                  <div className="stats-card" style={{ borderLeft: '4px solid #3b82f6' }}>
-                    <span className="stats-label">Total Students</span>
-                    <span className="stats-val" style={{ color: '#3b82f6' }}>{stats.totalStudents}</span>
+              <div style={{ display: 'flex', gap: '2rem', flexDirection: 'row', flexWrap: 'wrap' }} className="tpo-overview-layout">
+                {/* Left Column */}
+                <div style={{ flex: '2 1 650px', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                  <div className="tpo-stats-grid">
+                    <div className="stats-card" style={{ borderLeft: '4px solid #3b82f6' }}>
+                      <span className="stats-label">Total Students</span>
+                      <span className="stats-val" style={{ color: '#3b82f6' }}>{stats.totalStudents}</span>
+                    </div>
+                    <div className="stats-card" style={{ borderLeft: '4px solid #10b981' }}>
+                      <span className="stats-label">Total HRs</span>
+                      <span className="stats-val" style={{ color: '#10b981' }}>{stats.totalHRs}</span>
+                    </div>
+                    <div className="stats-card" style={{ borderLeft: '4px solid #f59e0b' }}>
+                      <span className="stats-label">Pending HR Approvals</span>
+                      <span className="stats-val" style={{ color: '#f59e0b' }}>{stats.pendingHRApprovals}</span>
+                    </div>
+                    <div className="stats-card" style={{ borderLeft: '4px solid #8b5cf6' }}>
+                      <span className="stats-label">Total Applications</span>
+                      <span className="stats-val" style={{ color: '#8b5cf6' }}>{stats.totalApplications}</span>
+                    </div>
                   </div>
-                  <div className="stats-card" style={{ borderLeft: '4px solid #10b981' }}>
-                    <span className="stats-label">Total HRs</span>
-                    <span className="stats-val" style={{ color: '#10b981' }}>{stats.totalHRs}</span>
-                  </div>
-                  <div className="stats-card" style={{ borderLeft: '4px solid #f59e0b' }}>
-                    <span className="stats-label">Pending HR Approvals</span>
-                    <span className="stats-val" style={{ color: '#f59e0b' }}>{stats.pendingHRApprovals}</span>
-                  </div>
-                  <div className="stats-card" style={{ borderLeft: '4px solid #8b5cf6' }}>
-                    <span className="stats-label">Total Applications</span>
-                    <span className="stats-val" style={{ color: '#8b5cf6' }}>{stats.totalApplications}</span>
-                  </div>
-                </div>
 
-                {/* All Applications Section */}
-                <div className="panel-card">
-                  {/* SECTION HEADER */}
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    borderBottom: '1px solid var(--slate-light)',
-                    paddingBottom: '10px',
-                    marginBottom: '16px'
-                  }}>
-                    <h3 style={{ margin: 0, fontFamily: 'var(--font-display)', color: 'var(--navy-deep)', fontSize: '20px', fontWeight: 600 }}>
-                      All Applications
-                    </h3>
-                    <span style={{
-                      backgroundColor: 'var(--navy-deep)',
-                      color: 'white',
-                      fontSize: '13px',
-                      fontWeight: '600',
-                      padding: '2px 10px',
-                      borderRadius: '20px'
+                  {/* All Applications Section */}
+                  <div className="panel-card">
+                    {/* SECTION HEADER */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      borderBottom: '1px solid var(--border)',
+                      paddingBottom: '10px',
+                      marginBottom: '16px'
                     }}>
-                      {allApplications.length}
-                    </span>
-                  </div>
-
-                  {/* SEARCH BAR */}
-                  <div style={{ position: 'relative', width: '100%', marginBottom: '1.5rem' }}>
-                    <Search
-                      size={18}
-                      style={{
-                        position: 'absolute',
-                        left: '12px',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        color: 'var(--slate)',
-                        pointerEvents: 'none'
-                      }}
-                    />
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="Search students, companies, or positions..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      style={{
-                        width: '100%',
-                        paddingLeft: '36px',
-                        margin: 0,
-                        border: '1px solid var(--slate-light)',
-                        borderRadius: 'var(--radius-sharp)',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-
-                  {/* CARDS LIST or EMPTY STATE */}
-                  {(() => {
-                    const filteredApps = allApplications.filter((app) => {
-                      const studentName = app.student?.name?.toLowerCase() || '';
-                      const company = app.jobDescription?.companyName?.toLowerCase() || '';
-                      const jdTitle = app.jobDescription?.title?.toLowerCase() || '';
-                      const query = searchQuery.toLowerCase();
-                      return studentName.includes(query) || company.includes(query) || jdTitle.includes(query);
-                    });
-
-                    if (filteredApps.length === 0) {
-                      return (
-                        <div style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          padding: '3rem',
-                          color: 'var(--slate)'
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <h3 style={{ margin: 0, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', fontSize: '20px', fontWeight: 600 }}>
+                          All Applications
+                        </h3>
+                        <span style={{
+                          backgroundColor: 'var(--brand)',
+                          color: 'var(--text-on-dark)',
+                          fontSize: '13px',
+                          fontWeight: '600',
+                          padding: '2px 10px',
+                          borderRadius: '20px'
                         }}>
-                          <Clipboard size={48} style={{ marginBottom: '1rem', opacity: 0.6 }} />
-                          <p style={{ margin: 0, fontSize: '15px' }}>No applications found</p>
+                          {allApplications.length}
+                        </span>
+                      </div>
+
+                      {/* SEARCH BAR */}
+                      <div style={{ position: 'relative', width: '260px' }}>
+                        <Search
+                          size={16}
+                          style={{
+                            position: 'absolute',
+                            left: '10px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            color: 'var(--slate)',
+                            pointerEvents: 'none'
+                          }}
+                        />
+                        <input
+                          type="text"
+                          className="form-input"
+                          placeholder="Search applicant or company..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          style={{
+                            width: '100%',
+                            paddingLeft: '32px',
+                            margin: 0,
+                            height: '36px',
+                            fontSize: '13px',
+                            border: '1px solid var(--border)',
+                            borderRadius: '4px'
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* CARDS LIST or EMPTY STATE */}
+                    {(() => {
+                      const filteredApps = allApplications.filter((app) => {
+                        const studentName = app.student?.name?.toLowerCase() || '';
+                        const company = app.jobDescription?.companyName?.toLowerCase() || '';
+                        const jdTitle = app.jobDescription?.title?.toLowerCase() || '';
+                        const query = searchQuery.toLowerCase();
+                        return studentName.includes(query) || company.includes(query) || jdTitle.includes(query);
+                      });
+
+                      if (filteredApps.length === 0) {
+                        return (
+                          <div style={{
+                            textAlign: 'center',
+                            padding: '3rem 1.5rem',
+                            color: 'var(--text-secondary)'
+                          }}>
+                            <Clipboard size={48} style={{ strokeWidth: 1, color: 'var(--text-secondary)', marginBottom: '1rem' }} />
+                            <p style={{ margin: 0, fontSize: '14px', fontWeight: 500 }}>No matching applications found.</p>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div className="tpo-app-cards-container">
+                          {filteredApps.map((app) => (
+                            <div key={app._id} className="tpo-app-card" style={{ borderLeft: `4px solid ${getStatusBorderColor(app.status)}` }}>
+                              {/* LEFT section */}
+                              <div className="tpo-app-card-left">
+                                <h4 className="tpo-app-card-name">
+                                  {app.student?.name || 'N/A'}
+                                </h4>
+                                <div className="tpo-app-card-meta">
+                                  <span className="tpo-app-card-branch">
+                                    {app.student?.branch || 'N/A'}
+                                  </span>
+                                  {app.student?.degreeCGPA && (
+                                    <span className="tpo-app-card-cgpa">
+                                      CGPA: {app.student.degreeCGPA}
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="tpo-app-card-email">
+                                  {app.student?.email || 'N/A'}
+                                </span>
+                              </div>
+
+                              {/* MIDDLE section */}
+                              <div className="tpo-app-card-middle">
+                                <span className="tpo-app-card-title" style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '15px' }}>
+                                  {app.jobDescription?.title || 'N/A'}
+                                </span>
+                                <span className="tpo-app-card-company" style={{ color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 500 }}>
+                                  {app.jobDescription?.companyName || 'N/A'}
+                                </span>
+                                <span className="tpo-app-card-date">
+                                  Applied on {new Date(app.appliedAt).toLocaleDateString(undefined, {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric'
+                                  })}
+                                </span>
+                              </div>
+
+                              {/* RIGHT section */}
+                              <div className="tpo-app-card-right">
+                                <span className={`sd-status-badge ${getStatusClass(app.status)}`} style={{ display: 'inline-block', marginBottom: '8px', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' }}>
+                                  {app.status}
+                                </span>
+                                <span className="tpo-app-card-score">
+                                  Mock: {app.mockInterviewScore !== null ? `${app.mockInterviewScore}/100` : '—'}
+                                </span>
+                                <span className="tpo-app-card-score">
+                                  Assessment: {app.assessmentAttempted && app.assessmentScore !== null ? `${app.assessmentScore}%` : '—'}
+                                </span>
+                                <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap', width: '100%', justifyContent: 'stretch' }}>
+                                  <button
+                                    onClick={() => handleOpenProfileModal(app.student?._id)}
+                                    className="tpo-app-card-btn"
+                                    style={{ margin: 0, flex: 1, whiteSpace: 'nowrap' }}
+                                  >
+                                    View Profile
+                                  </button>
+                                  {app.student?._id && (
+                                    <button
+                                      onClick={() => {
+                                        setConfirmModal({
+                                          isOpen: true,
+                                          title: 'Confirm Student Removal',
+                                          message: `Are you sure you want to remove student "${app.student.name || 'this student'}"? This will delete ALL their applications and data permanently.`,
+                                          onConfirm: () => handleRemoveStudent(app.student._id)
+                                        });
+                                      }}
+                                      style={{
+                                        border: '1px solid var(--danger)',
+                                        color: 'var(--danger)',
+                                        background: 'transparent',
+                                        padding: '6px 10px',
+                                        fontSize: '12px',
+                                        cursor: 'pointer',
+                                        borderRadius: 'var(--radius-sharp)',
+                                        fontWeight: '600',
+                                        fontFamily: 'var(--font-body)',
+                                        flex: 1,
+                                        whiteSpace: 'nowrap'
+                                      }}
+                                    >
+                                      Remove Student
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       );
-                    }
+                    })()}
+                  </div>
 
-                    return (
-                      <div className="tpo-app-cards-container">
-                        {filteredApps.map((app) => (
-                          <div
-                            key={app._id}
-                            className="tpo-app-card"
-                            style={{ borderLeft: `4px solid ${getStatusBorderColor(app.status)}` }}
-                          >
-                            {/* LEFT section */}
-                            <div className="tpo-app-card-left">
-                              <h4 className="tpo-app-card-name">
-                                {app.student?.name || 'N/A'}
-                              </h4>
-                              <div className="tpo-app-card-meta">
-                                <span className="tpo-app-card-branch">
-                                  {app.student?.branch || 'N/A'}
-                                </span>
-                                {app.student?.degreeCGPA !== undefined && app.student?.degreeCGPA !== null && (
-                                  <span className="tpo-app-card-cgpa">
-                                    CGPA: {app.student.degreeCGPA}
-                                  </span>
-                                )}
-                              </div>
-                              <span className="tpo-app-card-email">
-                                {app.student?.email || 'N/A'}
-                              </span>
-                            </div>
+                  {/* Active HR Companies Section */}
+                  <div className="panel-card">
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      borderBottom: '1px solid var(--border)',
+                      paddingBottom: '10px',
+                      marginBottom: '16px'
+                    }}>
+                      <h3 style={{ margin: 0, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', fontSize: '20px', fontWeight: 600 }}>
+                        Active HR Companies
+                      </h3>
+                      <span style={{
+                        backgroundColor: 'var(--brand)',
+                        color: 'var(--text-on-dark)',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        padding: '2px 10px',
+                        borderRadius: '20px'
+                      }}>
+                        {approvedHRs.length}
+                      </span>
+                    </div>
 
-                            {/* MIDDLE section */}
-                            <div className="tpo-app-card-middle">
-                              <span className="tpo-app-card-title" style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '15px' }}>
-                                {app.jobDescription?.title || 'N/A'}
-                              </span>
-                              <span className="tpo-app-card-company" style={{ color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 500 }}>
-                                {app.jobDescription?.companyName || 'N/A'}
-                              </span>
-                              <span className="tpo-app-card-date">
-                                Applied on {new Date(app.appliedAt).toLocaleDateString(undefined, {
-                                  month: 'short',
-                                  day: 'numeric',
-                                  year: 'numeric'
-                                })}
-                              </span>
-                            </div>
-
-                            {/* RIGHT section */}
-                            <div className="tpo-app-card-right">
-                              <span className={`sd-status-badge ${getStatusClass(app.status)}`} style={{ display: 'inline-block', marginBottom: '8px', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' }}>
-                                {app.status}
-                              </span>
-                              <span className="tpo-app-card-score">
-                                Mock: {app.mockInterviewScore !== null ? `${app.mockInterviewScore}/100` : '—'}
-                              </span>
-                              <span className="tpo-app-card-score">
-                                Assessment: {app.assessmentAttempted && app.assessmentScore !== null ? `${app.assessmentScore}%` : '—'}
-                              </span>
-                              <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap', width: '100%', justifyContent: 'stretch' }}>
-                                <button
-                                  onClick={() => handleOpenProfileModal(app.student?._id)}
-                                  className="tpo-app-card-btn"
-                                  style={{ margin: 0, flex: 1, whiteSpace: 'nowrap' }}
-                                >
-                                  View Profile
-                                </button>
-                                {app.student?._id && (
+                    {approvedHRs.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
+                        No active HR companies.
+                      </div>
+                    ) : (
+                      <div className="tpo-table-wrapper">
+                        <table className="tpo-table">
+                          <thead>
+                            <tr>
+                              <th>Company Name</th>
+                              <th>HR Rep Name</th>
+                              <th>Email Address</th>
+                              <th>Join Date</th>
+                              <th>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {approvedHRs.map((hr) => (
+                              <tr key={hr._id}>
+                                <td style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{hr.companyName || 'N/A'}</td>
+                                <td>{hr.name}</td>
+                                <td>{hr.email}</td>
+                                <td>
+                                  {new Date(hr.createdAt).toLocaleDateString(undefined, {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric'
+                                  })}
+                                </td>
+                                <td>
                                   <button
                                     onClick={() => {
                                       setConfirmModal({
                                         isOpen: true,
-                                        title: 'Confirm Student Removal',
-                                        message: `Are you sure you want to remove student "${app.student.name || 'this student'}"? This will delete ALL their applications and data permanently.`,
-                                        onConfirm: () => handleRemoveStudent(app.student._id)
+                                        title: 'Confirm Company Removal',
+                                        message: `Are you sure you want to remove the HR company "${hr.companyName || hr.name}" and ALL their job postings and applications? Continue?`,
+                                        onConfirm: () => handleRemoveHR(hr._id)
                                       });
                                     }}
                                     style={{
@@ -917,108 +1047,19 @@ const TPODashboard = () => {
                                       cursor: 'pointer',
                                       borderRadius: 'var(--radius-sharp)',
                                       fontWeight: '600',
-                                      fontFamily: 'var(--font-body)',
-                                      flex: 1,
-                                      whiteSpace: 'nowrap'
+                                      fontFamily: 'var(--font-body)'
                                     }}
                                   >
-                                    Remove Student
+                                    Remove Company
                                   </button>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
-                    );
-                  })()}
-                </div>
-
-                {/* Active HR Companies Section */}
-                <div className="panel-card">
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    borderBottom: '1px solid var(--border)',
-                    paddingBottom: '10px',
-                    marginBottom: '16px'
-                  }}>
-                    <h3 style={{ margin: 0, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', fontSize: '20px', fontWeight: 600 }}>
-                      Active HR Companies
-                    </h3>
-                    <span style={{
-                      backgroundColor: 'var(--brand)',
-                      color: 'var(--text-on-dark)',
-                      fontSize: '13px',
-                      fontWeight: '600',
-                      padding: '2px 10px',
-                      borderRadius: '20px'
-                    }}>
-                      {approvedHRs.length}
-                    </span>
+                    )}
                   </div>
-
-                  {approvedHRs.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
-                      No active HR companies.
-                    </div>
-                  ) : (
-                    <div className="tpo-table-wrapper">
-                      <table className="tpo-table">
-                        <thead>
-                          <tr>
-                            <th>Company Name</th>
-                            <th>HR Rep Name</th>
-                            <th>Email Address</th>
-                            <th>Join Date</th>
-                            <th>Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {approvedHRs.map((hr) => (
-                            <tr key={hr._id}>
-                              <td style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{hr.companyName || 'N/A'}</td>
-                              <td>{hr.name}</td>
-                              <td>{hr.email}</td>
-                              <td>
-                                {new Date(hr.createdAt).toLocaleDateString(undefined, {
-                                  month: 'short',
-                                  day: 'numeric',
-                                  year: 'numeric'
-                                })}
-                              </td>
-                              <td>
-                                <button
-                                  onClick={() => {
-                                    setConfirmModal({
-                                      isOpen: true,
-                                      title: 'Confirm Company Removal',
-                                      message: `Are you sure you want to remove the HR company "${hr.companyName || hr.name}" and ALL their job postings and applications? Continue?`,
-                                      onConfirm: () => handleRemoveHR(hr._id)
-                                    });
-                                  }}
-                                  style={{
-                                    border: '1px solid var(--danger)',
-                                    color: 'var(--danger)',
-                                    background: 'transparent',
-                                    padding: '6px 10px',
-                                    fontSize: '12px',
-                                    cursor: 'pointer',
-                                    borderRadius: 'var(--radius-sharp)',
-                                    fontWeight: '600',
-                                    fontFamily: 'var(--font-body)'
-                                  }}
-                                >
-                                  Remove Company
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
                 </div>
               </div>
             )}
@@ -1762,6 +1803,375 @@ const TPODashboard = () => {
               </div>
             )}
 
+            {activeTab === 'notifications-center' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                {/* Stats Grid */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                  gap: '16px'
+                }}>
+                  <div className="stats-card" style={{ borderLeft: '4px solid var(--navy-mid)' }}>
+                    <span className="stats-label">Total Notifications</span>
+                    <span className="stats-val" style={{ color: 'var(--navy-mid)' }}>{notifications.length}</span>
+                  </div>
+                  <div className="stats-card" style={{ borderLeft: '4px solid #ef4444' }}>
+                    <span className="stats-label">Unread Alerts</span>
+                    <span className="stats-val" style={{ color: '#ef4444' }}>{notifications.filter(n => !n.isRead).length}</span>
+                  </div>
+                  <div className="stats-card" style={{ borderLeft: '4px solid #f59e0b' }}>
+                    <span className="stats-label">Profile Audits</span>
+                    <span className="stats-val" style={{ color: '#f59e0b' }}>{notifications.filter(n => n.type === 'profile_update').length}</span>
+                  </div>
+                </div>
+
+                <div className="panel-card">
+                  {/* Header Actions */}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    borderBottom: '1px solid var(--border)',
+                    paddingBottom: '12px',
+                    marginBottom: '20px',
+                    flexWrap: 'wrap',
+                    gap: '12px'
+                  }}>
+                    <h3 style={{ margin: 0, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', fontSize: '22px' }}>
+                      Notification & Audit Logs
+                    </h3>
+                    <button
+                      onClick={handleMarkAllRead}
+                      disabled={notifications.filter(n => !n.isRead).length === 0}
+                      className="btn btn-secondary"
+                      style={{ margin: 0, width: 'auto', padding: '6px 14px', fontSize: '13px' }}
+                    >
+                      ✓ Mark All as Read
+                    </button>
+                  </div>
+
+                  {/* Filter controls */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                    gap: '16px',
+                    marginBottom: '24px'
+                  }}>
+                    {/* Text Search */}
+                    <div style={{ position: 'relative' }}>
+                      <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Search student or message..."
+                        value={notifSearchQuery}
+                        onChange={(e) => setNotifSearchQuery(e.target.value)}
+                        style={{ paddingLeft: '36px', margin: 0, width: '100%' }}
+                      />
+                    </div>
+
+                    {/* Read status filter */}
+                    <div>
+                      <select
+                        className="form-select"
+                        value={notifReadFilter}
+                        onChange={(e) => setNotifReadFilter(e.target.value)}
+                        style={{ margin: 0, width: '100%', height: '42px', border: '1px solid var(--border)', borderRadius: '4px' }}
+                      >
+                        <option value="All">All statuses</option>
+                        <option value="Unread">Unread Only</option>
+                        <option value="Read">Read Only</option>
+                      </select>
+                    </div>
+
+                    {/* Changed Field Filter */}
+                    <div>
+                      <select
+                        className="form-select"
+                        value={notifFieldFilter}
+                        onChange={(e) => setNotifFieldFilter(e.target.value)}
+                        style={{ margin: 0, width: '100%', height: '42px', border: '1px solid var(--border)', borderRadius: '4px' }}
+                      >
+                        <option value="All">All fields modified</option>
+                        <option value="CGPA">CGPA</option>
+                        <option value="Skills">Skills</option>
+                        <option value="Branch">Branch</option>
+                        <option value="Graduation Year">Graduation Year</option>
+                        <option value="Resume File">Resume File</option>
+                        <option value="Phone">Phone</option>
+                        <option value="Email">Email</option>
+                        <option value="LinkedIn">LinkedIn</option>
+                        <option value="GitHub">GitHub</option>
+                        <option value="Eligibility">Eligibility</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Notifications Feed */}
+                  {(() => {
+                    const filtered = notifications.filter(notif => {
+                      const name = notif.studentName?.toLowerCase() || '';
+                      const roll = notif.rollNumber?.toLowerCase() || '';
+                      const msg = notif.message?.toLowerCase() || '';
+                      const query = notifSearchQuery.toLowerCase();
+                      
+                      // Text filter
+                      if (query && !name.includes(query) && !roll.includes(query) && !msg.includes(query)) {
+                        return false;
+                      }
+
+                      // Read status filter
+                      if (notifReadFilter === 'Unread' && notif.isRead) return false;
+                      if (notifReadFilter === 'Read' && !notif.isRead) return false;
+
+                      // Field filter
+                      if (notifFieldFilter !== 'All') {
+                        const hasField = notif.changedFields?.some(f => f.includes(notifFieldFilter));
+                        if (!hasField) return false;
+                      }
+
+                      return true;
+                    });
+
+                    if (filtered.length === 0) {
+                      return (
+                        <div style={{ textAlign: 'center', padding: '3rem 1.5rem', color: 'var(--text-secondary)' }}>
+                          <Bell size={48} style={{ strokeWidth: 1, color: 'var(--text-secondary)', marginBottom: '1rem' }} />
+                          <p style={{ margin: 0, fontSize: '14px', fontWeight: 500 }}>No audit notifications match the selected criteria.</p>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        {filtered.map((notif) => {
+                          const isExpanded = !!expandedNotifs[notif._id];
+                          return (
+                            <div
+                              key={notif._id}
+                              style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                border: '1px solid var(--border)',
+                                borderRadius: '8px',
+                                overflow: 'hidden',
+                                transition: 'all 0.2s',
+                                backgroundColor: notif.isRead ? 'var(--bg-card)' : 'rgba(30, 58, 138, 0.02)',
+                                borderLeft: notif.isRead ? '4px solid var(--border)' : '4px solid var(--accent)'
+                              }}
+                            >
+                              {/* Header info */}
+                              <div style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'flex-start',
+                                padding: '16px',
+                                flexWrap: 'wrap',
+                                gap: '12px'
+                              }}>
+                                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                                  <div style={{
+                                    fontSize: '18px',
+                                    backgroundColor: 'var(--bg-surface)',
+                                    width: '36px',
+                                    height: '36px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    borderRadius: '50%'
+                                  }}>
+                                    👤
+                                  </div>
+                                  <div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                      <strong style={{ color: 'var(--text-primary)', fontSize: '15px' }}>{notif.studentName}</strong>
+                                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Roll: {notif.rollNumber || 'N/A'}</span>
+                                      <span style={{
+                                        fontSize: '10px',
+                                        backgroundColor: 'var(--bg-surface)',
+                                        color: 'var(--text-secondary)',
+                                        padding: '1px 6px',
+                                        borderRadius: '4px',
+                                        fontWeight: '600'
+                                      }}>
+                                        {notif.changedFields?.length || 0} fields
+                                      </span>
+                                    </div>
+                                    <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                                      {notif.message}
+                                    </p>
+                                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '6px' }}>
+                                      ⏰ {new Date(notif.createdAt).toLocaleString()} ({formatTimeAgo(notif.createdAt)})
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Actions */}
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                  <button
+                                    onClick={() => setExpandedNotifs(prev => ({ ...prev, [notif._id]: !isExpanded }))}
+                                    className="tpo-app-card-btn"
+                                    style={{ margin: 0, padding: '4px 10px', fontSize: '12px' }}
+                                  >
+                                    {isExpanded ? 'Hide Diffs' : 'View Diffs'}
+                                  </button>
+                                  <button
+                                    onClick={() => handleMarkAsRead(notif._id)}
+                                    style={{
+                                      border: '1px solid var(--border)',
+                                      background: 'transparent',
+                                      color: notif.isRead ? 'var(--text-secondary)' : 'var(--accent)',
+                                      padding: '4px 8px',
+                                      borderRadius: '4px',
+                                      fontSize: '12px',
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '4px'
+                                    }}
+                                    title={notif.isRead ? "Mark Unread" : "Mark Read"}
+                                  >
+                                    <Check size={14} /> {notif.isRead ? 'Read' : 'Unread'}
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteNotification(notif._id)}
+                                    style={{
+                                      border: '1px solid var(--danger)',
+                                      color: 'var(--danger)',
+                                      background: 'transparent',
+                                      padding: '4px 8px',
+                                      borderRadius: '4px',
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center'
+                                    }}
+                                    title="Delete Log"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Expanded diff details */}
+                              {isExpanded && notif.details && notif.details.length > 0 && (
+                                <div style={{
+                                  padding: '16px',
+                                  backgroundColor: 'var(--bg-surface)',
+                                  borderTop: '1px solid var(--border)'
+                                }}>
+                                  <div style={{ overflowX: 'auto' }}>
+                                    <table className="tpo-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', margin: 0 }}>
+                                      <thead>
+                                        <tr style={{ borderBottom: '1px solid var(--border)', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                          <th style={{ padding: '8px 12px' }}>Field Parameter</th>
+                                          <th style={{ padding: '8px 12px' }}>Old Configuration value</th>
+                                          <th style={{ padding: '8px 12px' }}>New Modified value</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {notif.details.map((det, index) => (
+                                          <tr key={index} style={{ borderBottom: '1px solid var(--border)', fontSize: '13px' }}>
+                                            <td style={{ padding: '10px 12px', fontWeight: 'bold' }}>{det.field}</td>
+                                            <td style={{ padding: '10px 12px', color: 'var(--danger)' }}>
+                                              {det.oldValue !== undefined && det.oldValue !== null ? String(det.oldValue) : 'N/A'}
+                                            </td>
+                                            <td style={{ padding: '10px 12px', color: '#10b981', fontWeight: '500' }}>
+                                              {det.newValue !== undefined && det.newValue !== null ? String(det.newValue) : 'N/A'}
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Eligibility History Feed widget at bottom */}
+                <div className="panel-card">
+                  <h3 style={{ borderBottom: '1px solid var(--border)', paddingBottom: '12px', marginBottom: '20px', fontFamily: 'var(--font-display)', color: 'var(--text-primary)', fontSize: '20px' }}>
+                    Student Eligibility Transition Log
+                  </h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {eligibilityHistory.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                        No eligibility shifts logged.
+                      </div>
+                    ) : (
+                      eligibilityHistory.map((item) => (
+                        <div
+                          key={item._id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '12px',
+                            padding: '12px',
+                            border: '1px solid var(--border)',
+                            borderRadius: '6px',
+                            backgroundColor: 'var(--bg-card)'
+                          }}
+                        >
+                          <div style={{
+                            fontSize: '18px',
+                            backgroundColor: 'var(--bg-surface)',
+                            width: '32px',
+                            height: '32px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: '50%'
+                          }}>
+                            ⚙️
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
+                              <div>
+                                <strong style={{ color: 'var(--text-primary)' }}>{item.student?.name || 'Unknown Student'}</strong>
+                                <span style={{ fontSize: '12px', color: 'var(--text-secondary)', marginLeft: '8px' }}>({item.student?.branch || 'N/A'} - CGPA: {item.student?.studentId || 'N/A'})</span>
+                              </div>
+                              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                {new Date(item.createdAt).toLocaleString()}
+                              </span>
+                            </div>
+                            <p style={{ margin: '6px 0 0 0', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                              Applied job status for <strong style={{ color: 'var(--navy-deep)' }}>{item.jobDescription?.companyName} ({item.jobDescription?.title})</strong> shifted:
+                              <span style={{
+                                textDecoration: 'line-through',
+                                color: 'var(--danger)',
+                                margin: '0 8px'
+                              }}>
+                                {item.oldStatus}
+                              </span>
+                              &rarr;
+                              <span style={{
+                                color: '#10b981',
+                                fontWeight: 'bold',
+                                marginLeft: '8px'
+                              }}>
+                                {item.newStatus}
+                              </span>
+                            </p>
+                            {item.reason && (
+                              <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                Reason: {item.reason}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
           </>
         )}
       </main>
@@ -2131,6 +2541,38 @@ const TPODashboard = () => {
                         </span>
                       </div>
                     )}
+
+                    {/* Eligibility history items */}
+                    {eligibilityHistory
+                      .filter(item => item.student?._id === studentProfileData?.student?._id)
+                      .map((item) => (
+                        <div key={item._id} style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <div style={{
+                            position: 'absolute',
+                            left: '-15px',
+                            top: '4px',
+                            width: '12px',
+                            height: '12px',
+                            borderRadius: '50%',
+                            backgroundColor: item.newStatus === 'Not Eligible' ? '#ef4444' : '#10b981',
+                            border: '3px solid var(--bg-card)'
+                          }} />
+                          <strong style={{ fontSize: '13px', color: item.newStatus === 'Not Eligible' ? '#ef4444' : '#10b981' }}>
+                            Eligibility Change: {item.jobDescription?.companyName || 'N/A'}
+                          </strong>
+                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                            Status shifted from "{item.oldStatus}" to "{item.newStatus}" due to profile update.
+                          </span>
+                          {item.reason && (
+                            <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                              Reason: {item.reason}
+                            </span>
+                          )}
+                          <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                            {new Date(item.createdAt).toLocaleString()}
+                          </span>
+                        </div>
+                      ))}
                   </div>
                 </div>
               </div>

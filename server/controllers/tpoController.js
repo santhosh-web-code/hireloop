@@ -5,6 +5,7 @@ import Assessment from '../models/Assessment.js';
 import JobDescription from '../models/JobDescription.js';
 import AssessmentResult from '../models/AssessmentResult.js';
 import Notification from '../models/Notification.js';
+import EligibilityHistory from '../models/EligibilityHistory.js';
 
 /**
  * Get all users where role is "hr" and isApproved is false (excluding password field)
@@ -350,7 +351,7 @@ export const markNotificationRead = async (req, res) => {
       return res.status(404).json({ message: 'Notification not found' });
     }
 
-    notification.isRead = true;
+    notification.isRead = !notification.isRead;
     await notification.save();
 
     return res.status(200).json(notification);
@@ -486,6 +487,33 @@ export const editStudentByTPO = async (req, res) => {
     });
   } catch (error) {
     console.error('Error in editStudentByTPO:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const deleteNotification = async (req, res) => {
+  try {
+    const { notificationId } = req.params;
+    const notification = await Notification.findByIdAndDelete(notificationId);
+    if (!notification) {
+      return res.status(404).json({ message: 'Notification not found' });
+    }
+    return res.status(200).json({ message: 'Notification deleted successfully' });
+  } catch (error) {
+    console.error('Error in deleteNotification:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const getEligibilityHistory = async (req, res) => {
+  try {
+    const history = await EligibilityHistory.find()
+      .populate('student', 'name studentId email branch')
+      .populate('jobDescription', 'title companyName')
+      .sort({ createdAt: -1 });
+    return res.status(200).json(history);
+  } catch (error) {
+    console.error('Error in getEligibilityHistory:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
 };

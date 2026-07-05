@@ -100,6 +100,14 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  linkedin: {
+    type: String,
+    default: null,
+  },
+  github: {
+    type: String,
+    default: null,
+  },
   isDisabled: {
     type: Boolean,
     default: false,

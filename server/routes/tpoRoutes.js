@@ -16,6 +16,8 @@ import {
   getStudentsListForSMS,
   getStudentDetailsByTPO,
   editStudentByTPO,
+  deleteNotification,
+  getEligibilityHistory,
 } from '../controllers/tpoController.js';
 import { protect, allowRoles } from '../middleware/authMiddleware.js';
 
@@ -37,7 +39,9 @@ router.delete('/remove-hr/:hrId', protect, allowRoles('tpo'), removeHR);
 // Notification Routes
 router.get('/notifications', protect, allowRoles('tpo'), getNotifications);
 router.put('/notifications/:notificationId/read', protect, allowRoles('tpo'), markNotificationRead);
+router.delete('/notifications/:notificationId', protect, allowRoles('tpo'), deleteNotification);
 router.put('/notifications/read-all', protect, allowRoles('tpo'), markAllNotificationsRead);
+router.get('/eligibility-history', protect, allowRoles('tpo'), getEligibilityHistory);
 
 // SMS Upgrade Student Management Routes
 router.get('/students', protect, allowRoles('tpo'), getStudentsListForSMS);

@@ -22,6 +22,9 @@ const StudentProfile = () => {
   const [collegeName, setCollegeName] = useState('');
   const [skills, setSkills] = useState('');
   const [bio, setBio] = useState('');
+  const [phone, setPhone] = useState('');
+  const [linkedin, setLinkedin] = useState('');
+  const [github, setGithub] = useState('');
 
   // Resume File & Note State
   const [resumeText, setResumeText] = useState('');
@@ -63,6 +66,9 @@ const StudentProfile = () => {
       setSkills(data.skills ? data.skills.join(', ') : '');
       setBio(data.bio || '');
       setResumeText(data.resumeText || '');
+      setPhone(data.phone || '');
+      setLinkedin(data.linkedin || '');
+      setGithub(data.github || '');
       
       setUserId(data._id || '');
       setEmail(data.email || '');
@@ -111,6 +117,10 @@ const StudentProfile = () => {
       collegeName,
       skills: skills ? skills.split(',').map(s => s.trim()).filter(s => s !== '') : [],
       bio: bio || null,
+      phone: phone || null,
+      email: email || null,
+      linkedin: linkedin || null,
+      github: github || null,
     };
 
     try {
@@ -461,6 +471,58 @@ const StudentProfile = () => {
                       value={collegeName}
                       onChange={(e) => setCollegeName(e.target.value)}
                       required
+                    />
+                  </div>
+
+                  {/* Phone */}
+                  <div className="profile-form-group">
+                    <label className="profile-label" htmlFor="phone">Phone Number</label>
+                    <input
+                      type="text"
+                      id="phone"
+                      className="profile-input"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="e.g. +91 9876543210"
+                    />
+                  </div>
+
+                  {/* Email */}
+                  <div className="profile-form-group">
+                    <label className="profile-label" htmlFor="email">Email Address</label>
+                    <input
+                      type="email"
+                      id="email"
+                      className="profile-input"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  {/* LinkedIn */}
+                  <div className="profile-form-group">
+                    <label className="profile-label" htmlFor="linkedin">LinkedIn URL</label>
+                    <input
+                      type="url"
+                      id="linkedin"
+                      className="profile-input"
+                      value={linkedin}
+                      onChange={(e) => setLinkedin(e.target.value)}
+                      placeholder="https://linkedin.com/in/username"
+                    />
+                  </div>
+
+                  {/* GitHub */}
+                  <div className="profile-form-group">
+                    <label className="profile-label" htmlFor="github">GitHub URL</label>
+                    <input
+                      type="url"
+                      id="github"
+                      className="profile-input"
+                      value={github}
+                      onChange={(e) => setGithub(e.target.value)}
+                      placeholder="https://github.com/username"
                     />
                   </div>
 
