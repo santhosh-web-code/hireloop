@@ -440,6 +440,16 @@ const TPODashboard = () => {
     }
   };
 
+  const handleExportCSV = () => {
+    const studentsList = Array.isArray(allStudents) ? allStudents : [];
+    if (selectedSmsStudents.length > 0) {
+      const selected = studentsList.filter(item => item.student && selectedSmsStudents.includes(item.student._id));
+      exportToCSV(selected);
+    } else {
+      exportToCSV(studentsList);
+    }
+  };
+
   const handleRemoveStudent = async (studentId) => {
     setProcessingId(studentId);
     setNotificationMessage('');
