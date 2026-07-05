@@ -18,6 +18,8 @@ const sendEmail = async (to, subject, html) => {
       subject,
       html,
     };
+    await transporter.verify();
+    console.log("Brevo SMTP Connected");
 
     const info = await transporter.sendMail(mailOptions);
     console.log(`Email sent successfully: ${info.messageId}`);
