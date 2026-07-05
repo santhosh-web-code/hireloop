@@ -306,9 +306,10 @@ export const updateProfile = async (req, res) => {
       const jd = app.jobDescription;
       if (!jd) continue;
 
-      const isCGPAEligible = updatedUser.cgpa === null || updatedUser.cgpa === undefined || jd.minCGPA <= updatedUser.cgpa;
+      const studentCGPA = updatedUser.degreeCGPA ?? updatedUser.cgpa ?? null;
+      const isCGPAEligible = studentCGPA === null || jd.minCGPA <= studentCGPA;
       const isBranchEligible = updatedUser.branch && jd.allowedBranches.includes(updatedUser.branch);
-      const isBacklogEligible = updatedUser.backlogs === null || updatedUser.backlogs === undefined || jd.maxBacklogs >= updatedUser.backlogs;
+      const isBacklogEligible = updatedUser.backlogs == null || jd.maxBacklogs >= updatedUser.backlogs;
 
       const isCurrentlyEligible = isCGPAEligible && isBranchEligible && isBacklogEligible;
 
