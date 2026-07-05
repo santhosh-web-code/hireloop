@@ -37,6 +37,16 @@ const TPODashboard = () => {
   const [smsSortBy, setSmsSortBy] = useState('Newest');
   const [smsCurrentPage, setSmsCurrentPage] = useState(1);
   const [smsRowsPerPage, setSmsRowsPerPage] = useState(10);
+
+  // Advanced Student Directory States
+  const [selectedSmsStudents, setSelectedSmsStudents] = useState([]);
+  const [smsBacklogFilter, setSmsBacklogFilter] = useState('All');
+  const [smsResumeFilter, setSmsResumeFilter] = useState('All');
+  const [smsFavFilter, setSmsFavFilter] = useState('All');
+  const [smsBlacklistFilter, setSmsBlacklistFilter] = useState('All');
+  const [bulkEmailModal, setBulkEmailModal] = useState({ isOpen: false, subject: '', body: '' });
+  const [remarksModal, setRemarksModal] = useState({ isOpen: false, studentId: null, tpoRemarks: '', studentNotes: '' });
+  const [resumeViewerModal, setResumeViewerModal] = useState({ isOpen: false, resumeBase64: '', fileName: '' });
   
   // Notification Center States
   const [notifSearchQuery, setNotifSearchQuery] = useState('');
@@ -199,6 +209,80 @@ const TPODashboard = () => {
       setNotifications(notifications.map(n => ({ ...n, isRead: true })));
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleToggleFavorite = async (studentId, currentFav) => {
+    try {
+      const res = await api.put(`/tpo/student/${studentId}/flags`, { isFavorite: !currentFav });
+      setAllStudents(allStudents.map(item => item.student._id === studentId ? {
+        ...item,
+        student: res.data.student
+      } : item));
+      setNotificationMessage(currentFav ? 'Removed from starred favorites.' : 'Marked as starred favorite.');
+      setTimeout(() => setNotificationMessage(''), 3000);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleToggleBlacklist = async (studentId, currentBlack) => {
+    try {
+      const res = await api.put(`/tpo/student/${studentId}/flags`, { isBlacklisted: !currentBlack });
+      setAllStudents(allStudents.map(item => item.student._id === studentId ? {
+        ...item,
+        student: res.data.student
+      } : item));
+      setNotificationMessage(currentBlack ? 'Removed student blacklist status.' : 'Blacklisted student successfully.');
+      setTimeout(() => setNotificationMessage(''), 3000);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleSaveRemarks = async (studentId, tpoRemarks, studentNotes) => {
+    try {
+      const res = await api.put(`/tpo/student/${studentId}/flags`, { tpoRemarks, studentNotes });
+      setAllStudents(allStudents.map(item => item.student._id === studentId ? {
+        ...item,
+        student: res.data.student
+      } : item));
+      setRemarksModal({ isOpen: false, studentId: null, tpoRemarks: '', studentNotes: '' });
+      setNotificationMessage('Student TPO remarks and notes saved.');
+      setTimeout(() => setNotificationMessage(''), 3000);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleBulkActionSubmit = async (actionType, additionalData = {}) => {
+    if (selectedSmsStudents.length === 0) {
+      alert('Please select at least one student.');
+      return;
+    }
+    try {
+      const payload = {
+        studentIds: selectedSmsStudents,
+        action: actionType,
+        ...additionalData
+      };
+      const res = await api.post('/tpo/students/bulk', payload);
+      
+      // Perform local updates
+      if (actionType === 'delete') {
+        setAllStudents(allStudents.filter(item => !selectedSmsStudents.includes(item.student._id)));
+      } else {
+        // reload stats / students list
+        const studentsRes = await api.get('/tpo/students');
+        setAllStudents(studentsRes.data || []);
+      }
+      
+      setSelectedSmsStudents([]);
+      setNotificationMessage(res.data.message || 'Bulk operation completed.');
+      setTimeout(() => setNotificationMessage(''), 4000);
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || 'Bulk operation failed.');
     }
   };
 
@@ -1643,7 +1727,7 @@ const TPODashboard = () => {
               </div>
             )}
 
-            {activeTab === 'students' && (
+                  {activeTab === 'students' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                 {/* Statistics Cards */}
                 <div style={{
@@ -1661,16 +1745,22 @@ const TPODashboard = () => {
                       {allStudents.filter(item => item.applications.some(app => app.status === 'Selected')).length}
                     </span>
                   </div>
+                  <div className="stats-card" style={{ borderLeft: '4px solid #f59e0b' }}>
+                    <span className="stats-label">Starred Favorites</span>
+                    <span className="stats-val" style={{ color: '#f59e0b' }}>
+                      {allStudents.filter(item => item.student?.isFavorite).length}
+                    </span>
+                  </div>
                   <div className="stats-card" style={{ borderLeft: '4px solid #ef4444' }}>
-                    <span className="stats-label">Not Applied</span>
+                    <span className="stats-label">Blacklisted</span>
                     <span className="stats-val" style={{ color: '#ef4444' }}>
-                      {allStudents.filter(item => item.totalApplications === 0).length}
+                      {allStudents.filter(item => item.student?.isBlacklisted).length}
                     </span>
                   </div>
                 </div>
 
                 <div className="panel-card">
-                  {/* Title & Actions */}
+                  {/* Title & Bulk action controls */}
                   <div style={{
                     display: 'flex',
                     justifyContent: 'space-between',
@@ -1682,11 +1772,11 @@ const TPODashboard = () => {
                     gap: '12px'
                   }}>
                     <h3 style={{ margin: 0, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', fontSize: '22px' }}>
-                      Student Directory
+                      Student Placement SMS Directory
                     </h3>
-                    <div style={{ display: 'flex', gap: '8px' }}>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                       <button
-                        onClick={() => exportToCSV(allStudents)}
+                        onClick={handleExportCSV}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
@@ -1694,426 +1784,568 @@ const TPODashboard = () => {
                           background: 'var(--bg-card)',
                           border: '1px solid var(--border)',
                           color: 'var(--text-primary)',
-                          padding: '8px 16px',
-                          borderRadius: 'var(--radius-sharp)',
+                          padding: '6px 12px',
+                          borderRadius: '4px',
                           fontSize: '13px',
-                          fontWeight: '600',
-                          cursor: 'pointer'
+                          cursor: 'pointer',
+                          fontWeight: '600'
                         }}
                       >
-                        <Download size={16} /> Export CSV
+                        📥 Export {selectedSmsStudents.length > 0 ? 'Selected' : 'All'} CSV
                       </button>
                     </div>
                   </div>
 
-                  {/* Search and Filters Grid */}
+                  {/* Bulk Operations Toolbar */}
+                  {selectedSmsStudents.length > 0 && (
+                    <div style={{
+                      backgroundColor: 'rgba(30, 58, 138, 0.05)',
+                      border: '1px solid var(--navy-mid)',
+                      borderRadius: '8px',
+                      padding: '12px 16px',
+                      marginBottom: '20px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '12px'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--navy-deep)' }}>
+                          Selected {selectedSmsStudents.length} students
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        <button
+                          onClick={() => setBulkEmailModal({ isOpen: true, subject: '', body: '' })}
+                          className="btn btn-primary"
+                          style={{ margin: 0, width: 'auto', padding: '6px 12px', fontSize: '12.5px' }}
+                        >
+                          ✉️ Bulk Email
+                        </button>
+                        <button
+                          onClick={() => handleBulkActionSubmit('recalculate_eligibility')}
+                          className="btn btn-secondary"
+                          style={{ margin: 0, width: 'auto', padding: '6px 12px', fontSize: '12.5px' }}
+                        >
+                          🔄 Refresh Eligibility
+                        </button>
+                        <button
+                          onClick={() => handleBulkActionSubmit('status_update', { isBlacklisted: true })}
+                          style={{ border: '1px solid #ef4444', color: '#ef4444', background: 'transparent', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12.5px', fontWeight: '600' }}
+                        >
+                          🛡️ Blacklist
+                        </button>
+                        <button
+                          onClick={() => handleBulkActionSubmit('status_update', { isBlacklisted: false })}
+                          style={{ border: '1px solid #10b981', color: '#10b981', background: 'transparent', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12.5px', fontWeight: '600' }}
+                        >
+                          🛡️ Whitelist
+                        </button>
+                        <button
+                          onClick={() => handleBulkActionSubmit('status_update', { isDisabled: true })}
+                          style={{ border: '1px solid var(--slate)', color: 'var(--slate)', background: 'transparent', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12.5px', fontWeight: '600' }}
+                        >
+                          🚫 Disable
+                        </button>
+                        <button
+                          onClick={() => handleBulkActionSubmit('status_update', { isDisabled: false })}
+                          style={{ border: '1px solid var(--navy-mid)', color: 'var(--navy-mid)', background: 'transparent', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12.5px', fontWeight: '600' }}
+                        >
+                          ✅ Enable
+                        </button>
+                        <button
+                          onClick={() => {
+                            setConfirmModal({
+                              isOpen: true,
+                              title: 'Bulk Delete Students',
+                              message: `Are you sure you want to delete all ${selectedSmsStudents.length} selected students and their corresponding applications permanently?`,
+                              onConfirm: () => handleBulkActionSubmit('delete')
+                            });
+                          }}
+                          style={{ border: '1px solid var(--danger)', color: 'var(--danger)', background: 'transparent', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12.5px', fontWeight: '600' }}
+                        >
+                          🗑️ Delete
+                        </button>
+                        <button
+                          onClick={() => setSelectedSmsStudents([])}
+                          style={{ border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-secondary)', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12.5px' }}
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Advanced Filters */}
                   <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                    display: 'flex',
+                    flexDirection: 'column',
                     gap: '16px',
-                    marginBottom: '24px'
+                    border: '1px solid var(--border)',
+                    padding: '16px',
+                    borderRadius: '8px',
+                    backgroundColor: 'var(--bg-surface)',
+                    marginBottom: '20px'
                   }}>
-                    {/* Search by Name/Roll/Email */}
-                    <div style={{ position: 'relative' }}>
-                      <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-                      <input
-                        type="text"
-                        className="form-input"
-                        placeholder="Search Name, Roll, Email..."
-                        value={smsSearchQuery}
-                        onChange={(e) => { setSmsSearchQuery(e.target.value); setSmsCurrentPage(1); }}
-                        style={{ paddingLeft: '36px', margin: 0, width: '100%' }}
-                      />
+                    <span style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--text-primary)' }}>Advanced Filters & Selection Queries</span>
+                    
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                      gap: '12px'
+                    }}>
+                      {/* Search */}
+                      <div style={{ position: 'relative' }}>
+                        <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                        <input
+                          type="text"
+                          className="form-input"
+                          placeholder="Search roll, name, email..."
+                          value={smsSearchQuery}
+                          onChange={(e) => { setSmsSearchQuery(e.target.value); setSmsCurrentPage(1); }}
+                          style={{ paddingLeft: '32px', margin: 0, width: '100%', height: '38px', fontSize: '13px' }}
+                        />
+                      </div>
+
+                      {/* Branch Filter */}
+                      <div>
+                        <select
+                          className="form-select"
+                          value={smsBranchFilter}
+                          onChange={(e) => { setSmsBranchFilter(e.target.value); setSmsCurrentPage(1); }}
+                          style={{ margin: 0, width: '100%', height: '38px', fontSize: '13px', border: '1px solid var(--border)', borderRadius: '4px' }}
+                        >
+                          <option value="All">All Branches</option>
+                          <option value="CSE">CSE Only</option>
+                          <option value="ECE">ECE Only</option>
+                          <option value="ME">ME Only</option>
+                          <option value="EE">EE Only</option>
+                        </select>
+                      </div>
+
+                      {/* Year Filter */}
+                      <div>
+                        <select
+                          className="form-select"
+                          value={smsYearFilter}
+                          onChange={(e) => { setSmsYearFilter(e.target.value); setSmsCurrentPage(1); }}
+                          style={{ margin: 0, width: '100%', height: '38px', fontSize: '13px', border: '1px solid var(--border)', borderRadius: '4px' }}
+                        >
+                          <option value="All">All Grad Years</option>
+                          <option value="2024">2024</option>
+                          <option value="2025">2025</option>
+                          <option value="2026">2026</option>
+                        </select>
+                      </div>
+
+                      {/* Placement status */}
+                      <div>
+                        <select
+                          className="form-select"
+                          value={smsPlacementFilter}
+                          onChange={(e) => { setSmsPlacementFilter(e.target.value); setSmsCurrentPage(1); }}
+                          style={{ margin: 0, width: '100%', height: '38px', fontSize: '13px', border: '1px solid var(--border)', borderRadius: '4px' }}
+                        >
+                          <option value="All">Placement Statuses</option>
+                          <option value="Placed">Placed Only</option>
+                          <option value="Not Placed">Unplaced Only</option>
+                        </select>
+                      </div>
+
+                      {/* Sorting */}
+                      <div>
+                        <select
+                          className="form-select"
+                          value={smsSortBy}
+                          onChange={(e) => { setSmsSortBy(e.target.value); setSmsCurrentPage(1); }}
+                          style={{ margin: 0, width: '100%', height: '38px', fontSize: '13px', border: '1px solid var(--border)', borderRadius: '4px' }}
+                        >
+                          <option value="Newest">Newest Joined</option>
+                          <option value="Oldest">Oldest Joined</option>
+                          <option value="Highest CGPA">Highest CGPA</option>
+                          <option value="Lowest CGPA">Lowest CGPA</option>
+                        </select>
+                      </div>
                     </div>
 
-                    {/* Filter Branch */}
-                    <div>
-                      <select
-                        className="form-select"
-                        value={smsBranchFilter}
-                        onChange={(e) => { setSmsBranchFilter(e.target.value); setSmsCurrentPage(1); }}
-                        style={{ margin: 0, width: '100%', height: '42px', border: '1px solid var(--border)', borderRadius: '4px', padding: '0 8px' }}
+                    {/* Quick filter buttons */}
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: '6px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginRight: '6px' }}>Quick Selectors:</span>
+                      <button
+                        onClick={() => { setSmsCgpaFilter(smsCgpaFilter === '8.0' ? 'All' : '8.0'); setSmsCurrentPage(1); }}
+                        style={{
+                          border: '1px solid var(--border)',
+                          backgroundColor: smsCgpaFilter === '8.0' ? 'var(--navy-mid)' : 'var(--bg-card)',
+                          color: smsCgpaFilter === '8.0' ? '#FFFFFF' : 'var(--text-primary)',
+                          padding: '4px 10px',
+                          borderRadius: '16px',
+                          fontSize: '11.5px',
+                          cursor: 'pointer',
+                          fontWeight: '600'
+                        }}
                       >
-                        <option value="All">All Branches</option>
-                        {Array.from(new Set(allStudents.map(item => item.student?.branch).filter(Boolean))).map(b => (
-                          <option key={b} value={b}>{b}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Filter Year */}
-                    <div>
-                      <select
-                        className="form-select"
-                        value={smsYearFilter}
-                        onChange={(e) => { setSmsYearFilter(e.target.value); setSmsCurrentPage(1); }}
-                        style={{ margin: 0, width: '100%', height: '42px', border: '1px solid var(--border)', borderRadius: '4px', padding: '0 8px' }}
+                        ⚡ High CGPA (&gt;= 8.0)
+                      </button>
+                      <button
+                        onClick={() => { setSmsBacklogFilter(smsBacklogFilter === 'No Backlogs' ? 'All' : 'No Backlogs'); setSmsCurrentPage(1); }}
+                        style={{
+                          border: '1px solid var(--border)',
+                          backgroundColor: smsBacklogFilter === 'No Backlogs' ? 'var(--navy-mid)' : 'var(--bg-card)',
+                          color: smsBacklogFilter === 'No Backlogs' ? '#FFFFFF' : 'var(--text-primary)',
+                          padding: '4px 10px',
+                          borderRadius: '16px',
+                          fontSize: '11.5px',
+                          cursor: 'pointer',
+                          fontWeight: '600'
+                        }}
                       >
-                        <option value="All">All Graduation Years</option>
-                        {Array.from(new Set(allStudents.map(item => item.student?.passedOutYear).filter(Boolean))).map(y => (
-                          <option key={y} value={y}>{y}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Filter CGPA range */}
-                    <div>
-                      <select
-                        className="form-select"
-                        value={smsCgpaFilter}
-                        onChange={(e) => { setSmsCgpaFilter(e.target.value); setSmsCurrentPage(1); }}
-                        style={{ margin: 0, width: '100%', height: '42px', border: '1px solid var(--border)', borderRadius: '4px', padding: '0 8px' }}
+                        💼 Zero Backlogs
+                      </button>
+                      <button
+                        onClick={() => { setSmsFavFilter(smsFavFilter === 'Favorites Only' ? 'All' : 'Favorites Only'); setSmsCurrentPage(1); }}
+                        style={{
+                          border: '1px solid var(--border)',
+                          backgroundColor: smsFavFilter === 'Favorites Only' ? 'var(--navy-mid)' : 'var(--bg-card)',
+                          color: smsFavFilter === 'Favorites Only' ? '#FFFFFF' : 'var(--text-primary)',
+                          padding: '4px 10px',
+                          borderRadius: '16px',
+                          fontSize: '11.5px',
+                          cursor: 'pointer',
+                          fontWeight: '600'
+                        }}
                       >
-                        <option value="All">All CGPA ranges</option>
-                        <option value="9">CGPA &gt;= 9.0</option>
-                        <option value="8">CGPA &gt;= 8.0</option>
-                        <option value="7">CGPA &gt;= 7.0</option>
-                        <option value="6">CGPA &gt;= 6.0</option>
-                        <option value="below6">CGPA &lt; 6.0</option>
-                      </select>
-                    </div>
-
-                    {/* Filter Eligibility */}
-                    <div>
-                      <select
-                        className="form-select"
-                        value={smsEligibleFilter}
-                        onChange={(e) => { setSmsEligibleFilter(e.target.value); setSmsCurrentPage(1); }}
-                        style={{ margin: 0, width: '100%', height: '42px', border: '1px solid var(--border)', borderRadius: '4px', padding: '0 8px' }}
+                        ⭐ Favorites Starred
+                      </button>
+                      <button
+                        onClick={() => { setSmsBlacklistFilter(smsBlacklistFilter === 'Blacklisted Only' ? 'All' : 'Blacklisted Only'); setSmsCurrentPage(1); }}
+                        style={{
+                          border: '1px solid var(--border)',
+                          backgroundColor: smsBlacklistFilter === 'Blacklisted Only' ? 'var(--navy-mid)' : 'var(--bg-card)',
+                          color: smsBlacklistFilter === 'Blacklisted Only' ? '#FFFFFF' : 'var(--text-primary)',
+                          padding: '4px 10px',
+                          borderRadius: '16px',
+                          fontSize: '11.5px',
+                          cursor: 'pointer',
+                          fontWeight: '600'
+                        }}
                       >
-                        <option value="All">All Eligibility statuses</option>
-                        <option value="Eligible">Eligible (All applied eligible)</option>
-                        <option value="Ineligible">Ineligible (Has ineligible apps)</option>
-                      </select>
-                    </div>
-
-                    {/* Filter Placement Status */}
-                    <div>
-                      <select
-                        className="form-select"
-                        value={smsPlacementFilter}
-                        onChange={(e) => { setSmsPlacementFilter(e.target.value); setSmsCurrentPage(1); }}
-                        style={{ margin: 0, width: '100%', height: '42px', border: '1px solid var(--border)', borderRadius: '4px', padding: '0 8px' }}
+                        🛡️ Blacklisted Only
+                      </button>
+                      <button
+                        onClick={() => { setSmsResumeFilter(smsResumeFilter === 'Has Resume' ? 'All' : 'Has Resume'); setSmsCurrentPage(1); }}
+                        style={{
+                          border: '1px solid var(--border)',
+                          backgroundColor: smsResumeFilter === 'Has Resume' ? 'var(--navy-mid)' : 'var(--bg-card)',
+                          color: smsResumeFilter === 'Has Resume' ? '#FFFFFF' : 'var(--text-primary)',
+                          padding: '4px 10px',
+                          borderRadius: '16px',
+                          fontSize: '11.5px',
+                          cursor: 'pointer',
+                          fontWeight: '600'
+                        }}
                       >
-                        <option value="All">All Placement statuses</option>
-                        <option value="Placed">Placed (Selected)</option>
-                        <option value="Not Placed">Not Placed</option>
-                      </select>
-                    </div>
-
-                    {/* Filter Applied Status */}
-                    <div>
-                      <select
-                        className="form-select"
-                        value={smsAppliedFilter}
-                        onChange={(e) => { setSmsAppliedFilter(e.target.value); setSmsCurrentPage(1); }}
-                        style={{ margin: 0, width: '100%', height: '42px', border: '1px solid var(--border)', borderRadius: '4px', padding: '0 8px' }}
-                      >
-                        <option value="All">All Applied statuses</option>
-                        <option value="Applied">Applied (&gt;= 1 job)</option>
-                        <option value="Not Applied">Not Applied (0 jobs)</option>
-                      </select>
-                    </div>
-
-                    {/* Sort criteria */}
-                    <div>
-                      <select
-                        className="form-select"
-                        value={smsSortBy}
-                        onChange={(e) => { setSmsSortBy(e.target.value); setSmsCurrentPage(1); }}
-                        style={{ margin: 0, width: '100%', height: '42px', border: '1px solid var(--border)', borderRadius: '4px', padding: '0 8px' }}
-                      >
-                        <option value="Newest">Sort: Newest Joined</option>
-                        <option value="Oldest">Sort: Oldest Joined</option>
-                        <option value="Highest CGPA">Sort: Highest CGPA</option>
-                        <option value="Lowest CGPA">Sort: Lowest CGPA</option>
-                      </select>
+                        📄 Has Resume Uploaded
+                      </button>
                     </div>
                   </div>
 
-                  {/* Grid Table */}
+                  {/* Student Directory Table Container */}
                   {(() => {
-                    // Filter logic
-                    let processed = allStudents.filter(item => {
-                      const student = item.student || {};
-                      
-                      // Search Query
-                      const name = student.name?.toLowerCase() || '';
-                      const roll = student.studentId?.toLowerCase() || '';
-                      const email = student.email?.toLowerCase() || '';
-                      const query = smsSearchQuery.toLowerCase();
-                      if (smsSearchQuery && !name.includes(query) && !roll.includes(query) && !email.includes(query)) {
-                        return false;
-                      }
+                    const filtered = allStudents.filter(item => {
+                      const student = item.student;
+                      if (!student) return false;
 
-                      // Branch Filter
+                      const q = smsSearchQuery.toLowerCase();
+                      const nameMatch = student.name?.toLowerCase().includes(q);
+                      const idMatch = student.studentId?.toLowerCase().includes(q);
+                      const emailMatch = student.email?.toLowerCase().includes(q);
+                      if (q && !nameMatch && !idMatch && !emailMatch) return false;
+
                       if (smsBranchFilter !== 'All' && student.branch !== smsBranchFilter) return false;
+                      if (smsYearFilter !== 'All' && student.passedOutYear?.toString() !== smsYearFilter) return false;
 
-                      // Year Filter
-                      if (smsYearFilter !== 'All' && String(student.passedOutYear) !== smsYearFilter) return false;
+                      if (smsCgpaFilter === '8.0' && (student.cgpa || student.degreeCGPA || 0) < 8.0) return false;
+                      if (smsBacklogFilter === 'No Backlogs' && (student.backlogs || 0) > 0) return false;
+                      if (smsResumeFilter === 'Has Resume' && !student.resumeBase64) return false;
+                      if (smsFavFilter === 'Favorites Only' && !student.isFavorite) return false;
 
-                      // CGPA Filter
-                      const actualCGPA = student.cgpa || student.degreeCGPA || 0;
-                      if (smsCgpaFilter === '9' && actualCGPA < 9) return false;
-                      if (smsCgpaFilter === '8' && actualCGPA < 8) return false;
-                      if (smsCgpaFilter === '7' && actualCGPA < 7) return false;
-                      if (smsCgpaFilter === '6' && actualCGPA < 6) return false;
-                      if (smsCgpaFilter === 'below6' && actualCGPA >= 6) return false;
+                      if (smsBlacklistFilter === 'Blacklisted Only' && !student.isBlacklisted) return false;
+                      if (smsBlacklistFilter === 'Not Blacklisted' && student.isBlacklisted) return false;
 
-                      // Eligibility Filter
-                      const hasIneligible = item.applications.some(app => app.status === 'Not Eligible');
-                      if (smsEligibleFilter === 'Eligible' && hasIneligible) return false;
-                      if (smsEligibleFilter === 'Ineligible' && !hasIneligible) return false;
-
-                      // Placement status Filter
-                      const isPlaced = item.applications.some(app => app.status === 'Selected');
+                      const isPlaced = item.applications?.some(app => app.status === 'Selected');
                       if (smsPlacementFilter === 'Placed' && !isPlaced) return false;
                       if (smsPlacementFilter === 'Not Placed' && isPlaced) return false;
-
-                      // Applied status Filter
-                      if (smsAppliedFilter === 'Applied' && item.totalApplications === 0) return false;
-                      if (smsAppliedFilter === 'Not Applied' && item.totalApplications > 0) return false;
 
                       return true;
                     });
 
-                    // Sort logic
-                    processed.sort((a, b) => {
-                      const cgpaA = a.student?.cgpa || a.student?.degreeCGPA || 0;
-                      const cgpaB = b.student?.cgpa || b.student?.degreeCGPA || 0;
-                      const dateA = new Date(a.student?.createdAt || 0);
-                      const dateB = new Date(b.student?.createdAt || 0);
+                    // Sorting
+                    if (smsSortBy === 'Highest CGPA') {
+                      filtered.sort((a, b) => (b.student?.cgpa || 0) - (a.student?.cgpa || 0));
+                    } else if (smsSortBy === 'Lowest CGPA') {
+                      filtered.sort((a, b) => (a.student?.cgpa || 0) - (b.student?.cgpa || 0));
+                    } else if (smsSortBy === 'Oldest') {
+                      filtered.sort((a, b) => new Date(a.student?.createdAt).getTime() - new Date(b.student?.createdAt).getTime());
+                    } else {
+                      filtered.sort((a, b) => new Date(b.student?.createdAt).getTime() - new Date(a.student?.createdAt).getTime());
+                    }
 
-                      if (smsSortBy === 'Highest CGPA') return cgpaB - cgpaA;
-                      if (smsSortBy === 'Lowest CGPA') return cgpaA - cgpaB;
-                      if (smsSortBy === 'Oldest') return dateA - dateB;
-                      return dateB - dateA; // Newest by default
-                    });
+                    // Pagination
+                    const totalItems = filtered.length;
+                    const totalPages = Math.ceil(totalItems / smsRowsPerPage);
+                    const indexOfLastRow = smsCurrentPage * smsRowsPerPage;
+                    const indexOfFirstRow = indexOfLastRow - smsRowsPerPage;
+                    const currentRows = filtered.slice(indexOfFirstRow, indexOfLastRow);
 
-                    // Pagination logic
-                    const totalRows = processed.length;
-                    const startIndex = (smsCurrentPage - 1) * smsRowsPerPage;
-                    const paginated = processed.slice(startIndex, startIndex + smsRowsPerPage);
-                    const totalPages = Math.ceil(totalRows / smsRowsPerPage) || 1;
+                    const toggleSelectAll = (e) => {
+                      if (e.target.checked) {
+                        setSelectedSmsStudents(currentRows.map(item => item.student._id));
+                      } else {
+                        setSelectedSmsStudents([]);
+                      }
+                    };
+
+                    if (filtered.length === 0) {
+                      return (
+                        <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
+                          <Clipboard size={48} style={{ strokeWidth: 1, color: 'var(--text-secondary)', marginBottom: '1rem' }} />
+                          <p style={{ margin: 0 }}>No students registered match your current search queries.</p>
+                        </div>
+                      );
+                    }
 
                     return (
-                      <div>
-                        <div style={{ overflowX: 'auto' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div className="tpo-table-wrapper" style={{ overflowX: 'auto' }}>
                           <table className="tpo-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <thead>
-                              <tr style={{ borderBottom: '2px solid var(--border)', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                                <th style={{ padding: '12px 16px' }}>Student Info</th>
-                                <th style={{ padding: '12px 16px' }}>Branch & Year</th>
-                                <th style={{ padding: '12px 16px' }}>Academic details</th>
-                                <th style={{ padding: '12px 16px' }}>Resume</th>
-                                <th style={{ padding: '12px 16px' }}>Current Status</th>
-                                <th style={{ padding: '12px 16px' }}>Placement Status</th>
-                                <th style={{ padding: '12px 16px' }}>Applications & Best Scores</th>
-                                <th style={{ padding: '12px 16px', textAlign: 'right' }}>Actions</th>
+                              <tr>
+                                <th style={{ width: '40px', padding: '12px' }}>
+                                  <input
+                                    type="checkbox"
+                                    onChange={toggleSelectAll}
+                                    checked={currentRows.length > 0 && currentRows.every(r => selectedSmsStudents.includes(r.student._id))}
+                                  />
+                                </th>
+                                <th style={{ width: '40px', padding: '12px', textAlign: 'center' }}>Fav</th>
+                                <th style={{ padding: '12px' }}>Student Name & ID</th>
+                                <th style={{ padding: '12px' }}>Branch & Year</th>
+                                <th style={{ padding: '12px' }}>Academic Metrics</th>
+                                <th style={{ padding: '12px' }}>Resume & Status</th>
+                                <th style={{ padding: '12px' }}>Remarks & Notes</th>
+                                <th style={{ padding: '12px', textAlign: 'right' }}>Actions</th>
                               </tr>
                             </thead>
                             <tbody>
-                              {paginated.length === 0 ? (
-                                <tr>
-                                  <td colSpan="8" style={{ padding: '32px', fontStyle: 'italic', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                                    No registered students found matching criteria.
-                                  </td>
-                                </tr>
-                              ) : (
-                                paginated.map(({ student, applications, totalApplications }) => {
-                                  const actualCGPA = student.cgpa || student.degreeCGPA || 'N/A';
-                                  const isPlaced = applications.some(app => app.status === 'Selected');
-                                  const hasResume = !!(student.resumeBase64 || student.resumeFileName);
-                                  const bestAssessment = applications.reduce((max, app) => app.assessmentScore > max ? app.assessmentScore : max, 0);
-                                  const bestMock = applications.reduce((max, app) => app.mockInterviewScore > max ? app.mockInterviewScore : max, 0);
-
-                                  return (
-                                    <tr key={student._id} style={{ borderBottom: '1px solid var(--border)', fontSize: '13.5px' }}>
-                                      {/* Student Info */}
-                                      <td style={{ padding: '16px 16px' }} data-label="Student Info">
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                          <strong style={{ color: 'var(--navy-deep)', fontSize: '15px' }}>{student.name}</strong>
-                                          <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>Roll: {student.studentId || 'N/A'}</span>
-                                          <span style={{ color: 'var(--text-secondary)', fontSize: '12.5px' }}>{student.email}</span>
-                                          {student.phone && <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>📞 {student.phone}</span>}
+                              {currentRows.map((item) => {
+                                const s = item.student;
+                                const isSelected = selectedSmsStudents.includes(s._id);
+                                const isPlaced = item.applications?.some(app => app.status === 'Selected');
+                                
+                                return (
+                                  <tr key={s._id} style={{ borderBottom: '1px solid var(--border)', backgroundColor: isSelected ? 'rgba(30, 58, 138, 0.02)' : 'transparent' }}>
+                                    <td style={{ padding: '12px' }}>
+                                      <input
+                                        type="checkbox"
+                                        checked={isSelected}
+                                        onChange={(e) => {
+                                          if (e.target.checked) {
+                                            setSelectedSmsStudents([...selectedSmsStudents, s._id]);
+                                          } else {
+                                            setSelectedSmsStudents(selectedSmsStudents.filter(id => id !== s._id));
+                                          }
+                                        }}
+                                      />
+                                    </td>
+                                    <td style={{ padding: '12px', textAlign: 'center' }}>
+                                      <button
+                                        onClick={() => handleToggleFavorite(s._id, s.isFavorite)}
+                                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', padding: 0 }}
+                                        title={s.isFavorite ? 'Remove star' : 'Star favorite'}
+                                      >
+                                        {s.isFavorite ? '⭐' : '☆'}
+                                      </button>
+                                    </td>
+                                    <td style={{ padding: '12px' }}>
+                                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                        <strong style={{ color: 'var(--text-primary)', fontSize: '14px' }}>{s.name}</strong>
+                                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>ID: {s.studentId || 'N/A'}</span>
+                                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{s.email}</span>
+                                      </div>
+                                    </td>
+                                    <td style={{ padding: '12px' }}>
+                                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                        <span style={{ fontSize: '13px', fontWeight: '500', color: 'var(--text-primary)' }}>{s.branch}</span>
+                                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Class of {s.passedOutYear || 'N/A'}</span>
+                                      </div>
+                                    </td>
+                                    <td style={{ padding: '12px' }}>
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                        <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>CGPA: <strong style={{ color: 'var(--text-primary)' }}>{s.cgpa || s.degreeCGPA || 'N/A'}</strong></span>
+                                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Backlogs: <strong style={{ color: s.backlogs > 0 ? 'var(--danger)' : 'var(--text-primary)' }}>{s.backlogs !== undefined ? s.backlogs : 'N/A'}</strong></span>
+                                      </div>
+                                    </td>
+                                    <td style={{ padding: '12px' }}>
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                        {s.resumeBase64 ? (
+                                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                            <button
+                                              onClick={() => setResumeViewerModal({ isOpen: true, resumeBase64: s.resumeBase64, fileName: s.resumeFileName || 'resume.pdf' })}
+                                              style={{ background: 'none', border: 'none', padding: 0, color: 'var(--accent)', cursor: 'pointer', fontSize: '11px', fontWeight: '600' }}
+                                            >
+                                              👁️ Preview
+                                            </button>
+                                            <button
+                                              onClick={() => handleDownloadResumeBase64(s.resumeBase64, s.resumeFileName || 'resume.pdf')}
+                                              style={{ background: 'none', border: 'none', padding: 0, color: '#10b981', cursor: 'pointer', fontSize: '11px', fontWeight: '600' }}
+                                            >
+                                              📥 Get
+                                            </button>
+                                          </div>
+                                        ) : (
+                                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>No Resume</span>
+                                        )}
+                                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '2px' }}>
+                                          {s.isBlacklisted && (
+                                            <span style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', fontSize: '9.5px', padding: '1px 5px', borderRadius: '3px', fontWeight: 'bold' }}>
+                                              Blacklisted
+                                            </span>
+                                          )}
+                                          {s.isDisabled && (
+                                            <span style={{ backgroundColor: 'rgba(100, 116, 139, 0.1)', color: 'var(--text-secondary)', fontSize: '9.5px', padding: '1px 5px', borderRadius: '3px', fontWeight: 'bold' }}>
+                                              Disabled
+                                            </span>
+                                          )}
+                                          {isPlaced ? (
+                                            <span style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981', fontSize: '9.5px', padding: '1px 5px', borderRadius: '3px', fontWeight: 'bold' }}>
+                                              Placed
+                                            </span>
+                                          ) : (
+                                            <span style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', fontSize: '9.5px', padding: '1px 5px', borderRadius: '3px', fontWeight: 'bold' }}>
+                                              Unplaced
+                                            </span>
+                                          )}
                                         </div>
-                                      </td>
-
-                                      {/* Branch & Year */}
-                                      <td style={{ padding: '16px 16px' }} data-label="Branch & Year">
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                          <span className="tpo-app-card-branch" style={{ alignSelf: 'flex-start' }}>{student.branch || 'N/A'}</span>
-                                          <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Grad: {student.passedOutYear || 'N/A'}</span>
-                                        </div>
-                                      </td>
-
-                                      {/* Academic details */}
-                                      <td style={{ padding: '16px 16px' }} data-label="Academic details">
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                          <span>CGPA: <strong>{actualCGPA}</strong></span>
-                                          <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>Backlogs: {student.backlogs || 0}</span>
-                                        </div>
-                                      </td>
-
-                                      {/* Resume */}
-                                      <td style={{ padding: '16px 16px' }} data-label="Resume">
-                                        <span style={{
-                                          fontSize: '11px',
-                                          fontWeight: 'bold',
-                                          backgroundColor: hasResume ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                                          color: hasResume ? '#10b981' : '#ef4444',
-                                          padding: '2px 8px',
-                                          borderRadius: '4px'
-                                        }}>
-                                          {hasResume ? 'Uploaded' : 'Missing'}
-                                        </span>
-                                      </td>
-
-                                      {/* Current Status */}
-                                      <td style={{ padding: '16px 16px' }} data-label="Current Status">
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                          <span style={{
-                                            fontSize: '11px',
-                                            fontWeight: 'bold',
-                                            backgroundColor: student.isDisabled ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
-                                            color: student.isDisabled ? '#ef4444' : '#10b981',
-                                            padding: '2px 8px',
-                                            borderRadius: '4px'
-                                          }}>
-                                            {student.isDisabled ? 'Disabled' : 'Active'}
+                                      </div>
+                                    </td>
+                                    <td style={{ padding: '12px' }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', maxWidth: '160px', overflow: 'hidden' }}>
+                                          <span style={{ fontSize: '11px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', color: 'var(--text-secondary)' }} title={s.tpoRemarks}>
+                                            Remarks: {s.tpoRemarks || '—'}
                                           </span>
-                                          <button
-                                            onClick={() => handleToggleStudentStatus(student._id, student.isDisabled)}
-                                            style={{
-                                              background: 'transparent',
-                                              border: 'none',
-                                              cursor: 'pointer',
-                                              padding: '4px',
-                                              color: 'var(--text-secondary)'
-                                            }}
-                                            title={student.isDisabled ? "Enable User" : "Disable User"}
-                                          >
-                                            {student.isDisabled ? <ShieldCheck size={18} style={{ color: '#10b981' }} /> : <ShieldAlert size={18} style={{ color: '#ef4444' }} />}
-                                          </button>
+                                          <span style={{ fontSize: '11px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', color: 'var(--text-muted)' }} title={s.studentNotes}>
+                                            Notes: {s.studentNotes || '—'}
+                                          </span>
                                         </div>
-                                      </td>
-
-                                      {/* Placement Status */}
-                                      <td style={{ padding: '16px 16px' }} data-label="Placement Status">
-                                        <span style={{
-                                          fontSize: '12px',
-                                          fontWeight: 'bold',
-                                          backgroundColor: isPlaced ? 'rgba(16, 185, 129, 0.1)' : 'rgba(148, 163, 184, 0.1)',
-                                          color: isPlaced ? '#10b981' : '#64748b',
-                                          padding: '4px 10px',
-                                          borderRadius: '20px'
-                                        }}>
-                                          {isPlaced ? '🎓 Placed' : 'Not Placed'}
-                                        </span>
-                                      </td>
-
-                                      {/* Applications & Best Scores */}
-                                      <td style={{ padding: '16px 16px' }} data-label="Applications & Best Scores">
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                          <span>Applied: <strong>{totalApplications} jobs</strong></span>
-                                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Best Assessment: {bestAssessment || 'N/A'}</span>
-                                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Best Mock: {bestMock || 'N/A'}</span>
-                                        </div>
-                                      </td>
-
-                                      {/* Actions */}
-                                      <td style={{ padding: '16px 16px', textAlign: 'right' }} data-label="Actions">
-                                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
-                                          <button
-                                            onClick={() => handleOpenProfileModal(student._id)}
-                                            className="tpo-app-card-btn"
-                                            style={{ margin: 0, padding: '4px 8px', fontSize: '12px' }}
-                                            title="View Profile"
-                                          >
-                                            View
-                                          </button>
-                                          <button
-                                            onClick={() => setEditStudentData(student)}
-                                            style={{
-                                              border: '1px solid var(--border)',
-                                              color: 'var(--text-primary)',
-                                              background: 'transparent',
-                                              padding: '4px 8px',
-                                              borderRadius: '4px',
-                                              cursor: 'pointer',
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              justifyContent: 'center'
-                                            }}
-                                            title="Edit Student"
-                                          >
-                                            <Edit size={14} />
-                                          </button>
-                                          <button
-                                            onClick={() => {
-                                              setConfirmModal({
-                                                isOpen: true,
-                                                title: 'Confirm Student Removal',
-                                                message: `Are you sure you want to remove student "${student.name}"? This will delete ALL their applications and data permanently.`,
-                                                onConfirm: () => handleRemoveStudent(student._id)
-                                              });
-                                            }}
-                                            style={{
-                                              border: '1px solid var(--danger)',
-                                              color: 'var(--danger)',
-                                              background: 'transparent',
-                                              padding: '4px 8px',
-                                              borderRadius: '4px',
-                                              cursor: 'pointer',
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              justifyContent: 'center'
-                                            }}
-                                            title="Remove Student"
-                                          >
-                                            <Trash2 size={14} />
-                                          </button>
-                                        </div>
-                                      </td>
-                                    </tr>
-                                  );
-                                })
-                              )}
+                                        <button
+                                          onClick={() => setRemarksModal({ isOpen: true, studentId: s._id, tpoRemarks: s.tpoRemarks || '', studentNotes: s.studentNotes || '' })}
+                                          style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: '2px' }}
+                                          title="Edit notes & remarks"
+                                        >
+                                          ✏️
+                                        </button>
+                                      </div>
+                                    </td>
+                                    <td style={{ padding: '12px', textAlign: 'right' }}>
+                                      <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                                        <button
+                                          onClick={() => handleOpenProfileModal(s._id)}
+                                          className="tpo-app-card-btn"
+                                          style={{ margin: 0, padding: '4px 8px', fontSize: '11.5px' }}
+                                        >
+                                          Profile
+                                        </button>
+                                        <button
+                                          onClick={() => setEditStudentData({
+                                            id: s._id,
+                                            name: s.name || '',
+                                            email: s.email || '',
+                                            studentId: s.studentId || '',
+                                            phone: s.phone || '',
+                                            branch: s.branch || '',
+                                            passedOutYear: s.passedOutYear || '',
+                                            cgpa: s.cgpa || s.degreeCGPA || '',
+                                            backlogs: s.backlogs || 0
+                                          })}
+                                          className="tpo-app-card-btn"
+                                          style={{ margin: 0, padding: '4px 8px', fontSize: '11.5px', border: '1px solid var(--navy-mid)', color: 'var(--navy-mid)', background: 'transparent' }}
+                                        >
+                                          Edit
+                                        </button>
+                                        <button
+                                          onClick={() => handleToggleBlacklist(s._id, s.isBlacklisted)}
+                                          style={{
+                                            border: s.isBlacklisted ? '1px solid #10b981' : '1px solid #ef4444',
+                                            color: s.isBlacklisted ? '#10b981' : '#ef4444',
+                                            background: 'transparent',
+                                            padding: '4px 8px',
+                                            borderRadius: '4px',
+                                            cursor: 'pointer',
+                                            fontSize: '11.5px',
+                                            fontWeight: '600'
+                                          }}
+                                        >
+                                          {s.isBlacklisted ? 'Whitelist' : 'Blacklist'}
+                                        </button>
+                                        <button
+                                          onClick={() => handleToggleStudentStatus(s._id, s.isDisabled)}
+                                          style={{
+                                            border: s.isDisabled ? '1px solid #10b981' : '1px solid var(--slate)',
+                                            color: s.isDisabled ? '#10b981' : 'var(--slate)',
+                                            background: 'transparent',
+                                            padding: '4px 8px',
+                                            borderRadius: '4px',
+                                            cursor: 'pointer',
+                                            fontSize: '11.5px',
+                                            fontWeight: '600'
+                                          }}
+                                        >
+                                          {s.isDisabled ? 'Enable' : 'Disable'}
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>
 
-                        {/* Pagination Row */}
-                        {totalRows > 0 && (
+                        {/* Pagination Section */}
+                        {totalPages > 1 && (
                           <div style={{
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center',
-                            marginTop: '20px',
+                            borderTop: '1px solid var(--border)',
+                            paddingTop: '16px',
                             flexWrap: 'wrap',
                             gap: '12px'
                           }}>
-                            <span style={{ fontSize: '13.5px', color: 'var(--text-secondary)' }}>
-                              Showing {startIndex + 1} to {Math.min(startIndex + smsRowsPerPage, totalRows)} of {totalRows} students
+                            <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                              Showing {indexOfFirstRow + 1} to {Math.min(indexOfLastRow, totalItems)} of {totalItems} students
                             </span>
                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                               <select
                                 className="form-select"
                                 value={smsRowsPerPage}
                                 onChange={(e) => { setSmsRowsPerPage(Number(e.target.value)); setSmsCurrentPage(1); }}
-                                style={{ margin: 0, height: '36px', border: '1px solid var(--border)', borderRadius: '4px', fontSize: '12px' }}
+                                style={{ margin: 0, width: '80px', height: '32px', fontSize: '12px', border: '1px solid var(--border)', borderRadius: '4px' }}
                               >
-                                <option value={10}>10 rows</option>
-                                <option value={20}>20 rows</option>
-                                <option value={50}>50 rows</option>
+                                <option value={10}>10 / page</option>
+                                <option value={25}>25 / page</option>
+                                <option value={50}>50 / page</option>
                               </select>
+
                               <div style={{ display: 'flex', gap: '4px' }}>
                                 <button
                                   onClick={() => setSmsCurrentPage(prev => Math.max(prev - 1, 1))}
                                   disabled={smsCurrentPage === 1}
                                   style={{
                                     border: '1px solid var(--border)',
-                                    background: 'var(--bg-card)',
+                                    background: 'transparent',
                                     color: smsCurrentPage === 1 ? 'var(--text-muted)' : 'var(--text-primary)',
                                     padding: '6px 10px',
                                     borderRadius: '4px',
@@ -2124,7 +2356,7 @@ const TPODashboard = () => {
                                 >
                                   <ChevronLeft size={16} />
                                 </button>
-                                <span style={{ fontSize: '13.5px', padding: '0 8px' }}>
+                                <span style={{ fontSize: '13px', padding: '0 12px', display: 'flex', alignItems: 'center' }}>
                                   Page {smsCurrentPage} of {totalPages}
                                 </span>
                                 <button
@@ -2132,7 +2364,7 @@ const TPODashboard = () => {
                                   disabled={smsCurrentPage === totalPages}
                                   style={{
                                     border: '1px solid var(--border)',
-                                    background: 'var(--bg-card)',
+                                    background: 'transparent',
                                     color: smsCurrentPage === totalPages ? 'var(--text-muted)' : 'var(--text-primary)',
                                     padding: '6px 10px',
                                     borderRadius: '4px',
@@ -3095,7 +3327,233 @@ const TPODashboard = () => {
                 <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Save Changes</button>
                 <button type="button" className="btn btn-secondary" onClick={() => setEditStudentData(null)} style={{ flex: 1 }}>Cancel</button>
               </div>
-            </form>
+              </form>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Email Compose Modal Overlay */}
+      {bulkEmailModal.isOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.6)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 9999,
+          padding: '16px'
+        }}>
+          <div style={{
+            backgroundColor: 'var(--bg-card)',
+            borderRadius: '12px',
+            boxShadow: 'var(--shadow-xl)',
+            width: '100%',
+            maxWidth: '550px',
+            border: '1px solid var(--border)',
+            display: 'flex',
+            flexDirection: 'column',
+            textAlign: 'left'
+          }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', fontSize: '20px' }}>Compose Bulk Email</h3>
+              <button onClick={() => setBulkEmailModal({ isOpen: false, subject: '', body: '' })} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '24px', cursor: 'pointer' }}>&times;</button>
+            </div>
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)' }}>
+                This email will be delivered to the <strong>{selectedSmsStudents.length}</strong> selected students.
+              </p>
+              <div>
+                <label className="form-label" style={{ fontSize: '13px', fontWeight: '600' }}>Subject</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={bulkEmailModal.subject}
+                  onChange={(e) => setBulkEmailModal({ ...bulkEmailModal, subject: e.target.value })}
+                  placeholder="Placement update regarding drive schedule..."
+                  required
+                />
+              </div>
+              <div>
+                <label className="form-label" style={{ fontSize: '13px', fontWeight: '600' }}>Message Body</label>
+                <textarea
+                  className="form-input"
+                  style={{ minHeight: '150px', padding: '10px', fontSize: '13px', resize: 'vertical' }}
+                  value={bulkEmailModal.body}
+                  onChange={(e) => setBulkEmailModal({ ...bulkEmailModal, body: e.target.value })}
+                  placeholder="Dear student, please make sure to..."
+                  required
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                <button
+                  onClick={() => {
+                    handleBulkActionSubmit('email', { subject: bulkEmailModal.subject, body: bulkEmailModal.body });
+                    setBulkEmailModal({ isOpen: false, subject: '', body: '' });
+                  }}
+                  className="btn btn-primary"
+                  style={{ flex: 1 }}
+                >
+                  Send Emails
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setBulkEmailModal({ isOpen: false, subject: '', body: '' })}
+                  style={{ flex: 1 }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Student Remarks & Notes Modal Overlay */}
+      {remarksModal.isOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.6)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 9999,
+          padding: '16px'
+        }}>
+          <div style={{
+            backgroundColor: 'var(--bg-card)',
+            borderRadius: '12px',
+            boxShadow: 'var(--shadow-xl)',
+            width: '100%',
+            maxWidth: '500px',
+            border: '1px solid var(--border)',
+            display: 'flex',
+            flexDirection: 'column',
+            textAlign: 'left'
+          }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', fontSize: '20px' }}>TPO Remarks & Student Notes</h3>
+              <button onClick={() => setRemarksModal({ isOpen: false, studentId: null, tpoRemarks: '', studentNotes: '' })} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '24px', cursor: 'pointer' }}>&times;</button>
+            </div>
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label className="form-label" style={{ fontSize: '13px', fontWeight: '600' }}>TPO Official Remarks</label>
+                <textarea
+                  className="form-input"
+                  style={{ minHeight: '80px', padding: '10px', fontSize: '13px', resize: 'vertical' }}
+                  value={remarksModal.tpoRemarks}
+                  onChange={(e) => setRemarksModal({ ...remarksModal, tpoRemarks: e.target.value })}
+                  placeholder="Official comments (visible to TPOs during review)..."
+                />
+              </div>
+              <div>
+                <label className="form-label" style={{ fontSize: '13px', fontWeight: '600' }}>Internal Profile Notes</label>
+                <textarea
+                  className="form-input"
+                  style={{ minHeight: '80px', padding: '10px', fontSize: '13px', resize: 'vertical' }}
+                  value={remarksModal.studentNotes}
+                  onChange={(e) => setRemarksModal({ ...remarksModal, studentNotes: e.target.value })}
+                  placeholder="Personal observations, mock interview feedback notes..."
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                <button
+                  onClick={() => handleSaveRemarks(remarksModal.studentId, remarksModal.tpoRemarks, remarksModal.studentNotes)}
+                  className="btn btn-primary"
+                  style={{ flex: 1 }}
+                >
+                  Save Remarks
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setRemarksModal({ isOpen: false, studentId: null, tpoRemarks: '', studentNotes: '' })}
+                  style={{ flex: 1 }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Resume Live Preview Modal Overlay */}
+      {resumeViewerModal.isOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.7)',
+          backdropFilter: 'blur(5px)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 9999,
+          padding: '16px'
+        }}>
+          <div style={{
+            backgroundColor: 'var(--bg-card)',
+            borderRadius: '12px',
+            boxShadow: 'var(--shadow-xl)',
+            width: '100%',
+            maxWidth: '850px',
+            border: '1px solid var(--border)',
+            display: 'flex',
+            flexDirection: 'column',
+            textAlign: 'left'
+          }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', fontSize: '18px' }}>
+                📄 Resume Preview: {resumeViewerModal.fileName}
+              </h3>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <button
+                  onClick={() => handleDownloadResumeBase64(resumeViewerModal.resumeBase64, resumeViewerModal.fileName)}
+                  style={{
+                    backgroundColor: '#10b981',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '4px',
+                    padding: '6px 12px',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  Download File
+                </button>
+                <button onClick={() => setResumeViewerModal({ isOpen: false, resumeBase64: '', fileName: '' })} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '24px', cursor: 'pointer' }}>&times;</button>
+              </div>
+            </div>
+            <div style={{ padding: '16px', backgroundColor: '#f8fafc', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+              {resumeViewerModal.resumeBase64.startsWith('data:application/pdf') || resumeViewerModal.resumeBase64.startsWith('data:image/') ? (
+                <iframe
+                  src={resumeViewerModal.resumeBase64}
+                  style={{ width: '100%', height: '550px', border: '1px solid var(--border)', borderRadius: '6px' }}
+                  title="Resume Viewer Frame"
+                />
+              ) : (
+                <div style={{ width: '100%', maxHeight: '550px', overflowY: 'auto', backgroundColor: '#ffffff', border: '1px solid var(--border)', padding: '24px', borderRadius: '6px', fontFamily: 'monospace', fontSize: '12.5px', whiteSpace: 'pre-wrap', color: '#1e293b' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '12px' }}>
+                    Note: PDF plugin not supported or text resume detected. Content preview below:
+                  </span>
+                  {resumeViewerModal.resumeBase64.substring(0, 10000)}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

@@ -108,6 +108,22 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  isFavorite: {
+    type: Boolean,
+    default: false,
+  },
+  isBlacklisted: {
+    type: Boolean,
+    default: false,
+  },
+  tpoRemarks: {
+    type: String,
+    default: null,
+  },
+  studentNotes: {
+    type: String,
+    default: null,
+  },
   isDisabled: {
     type: Boolean,
     default: false,

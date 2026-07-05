@@ -715,3 +715,140 @@ export const getTPOAnalytics = async (req, res) => {
   }
 };
 
+export const handleBulkAction = async (req, res) => {
+  try {
+    const { studentIds, action, subject, body, isDisabled, isBlacklisted } = req.body;
+    if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
+      return res.status(400).json({ message: 'No student IDs provided' });
+    }
+
+    if (action === 'delete') {
+      await User.deleteMany({ _id: { $in: studentIds }, role: 'student' });
+      await Application.deleteMany({ student: { $in: studentIds } });
+      return res.status(200).json({ message: 'Selected student profiles deleted successfully' });
+    }
+
+    if (action === 'email') {
+      if (!subject || !body) {
+        return res.status(400).json({ message: 'Subject and body are required for emails' });
+      }
+      const students = await User.find({ _id: { $in: studentIds }, role: 'student' }).select('email');
+      const emails = students.map(s => s.email).filter(Boolean);
+      
+      for (const email of emails) {
+        try {
+          await sendEmail(email, subject, `<div style="font-family: sans-serif; font-size: 14px; line-height: 1.6; color: #1e293b;">${body}</div>`);
+        } catch (emailErr) {
+          console.error(`Failed to send bulk email to ${email}:`, emailErr);
+        }
+      }
+      return res.status(200).json({ message: `Bulk email sent successfully to ${emails.length} students` });
+    }
+
+    if (action === 'status_update') {
+      const updateData = {};
+      if (isDisabled !== undefined) updateData.isDisabled = isDisabled;
+      if (isBlacklisted !== undefined) updateData.isBlacklisted = isBlacklisted;
+
+      await User.updateMany({ _id: { $in: studentIds }, role: 'student' }, { $set: updateData });
+      return res.status(200).json({ message: 'Selected student accounts status updated successfully' });
+    }
+
+    if (action === 'recalculate_eligibility') {
+      const activeJDs = await JobDescription.find({ approvalStatus: 'approved', isActive: true });
+      for (const studentId of studentIds) {
+        const student = await User.findById(studentId);
+        if (!student) continue;
+
+        const activeApplications = await Application.find({
+          student: studentId,
+          status: { $nin: ['Selected', 'Rejected'] }
+        }).populate('jobDescription');
+
+        for (const app of activeApplications) {
+          const jd = app.jobDescription;
+          if (!jd) continue;
+
+          const isCGPAEligible = student.cgpa === null || student.cgpa === undefined || jd.minCGPA <= student.cgpa;
+          const isBranchEligible = student.branch && jd.allowedBranches.includes(student.branch);
+          const isBacklogEligible = student.backlogs === null || student.backlogs === undefined || jd.maxBacklogs >= student.backlogs;
+
+          const isCurrentlyEligible = isCGPAEligible && isBranchEligible && isBacklogEligible;
+
+          let newStatus = app.status;
+          let reason = '';
+          if (!isCurrentlyEligible) {
+            newStatus = 'Not Eligible';
+            const reasons = [];
+            if (!isCGPAEligible) reasons.push(`CGPA is below minimum required ${jd.minCGPA}`);
+            if (!isBranchEligible) reasons.push(`Branch ${student.branch} is not allowed`);
+            if (!isBacklogEligible) reasons.push(`Backlogs count is above maximum allowed ${jd.maxBacklogs}`);
+            reason = reasons.join(', ');
+          } else if (app.status === 'Not Eligible') {
+            newStatus = 'Applied';
+            reason = 'Manual/bulk profile eligibility refresh passed criteria';
+          }
+
+          if (newStatus !== app.status) {
+            const oldStatus = app.status;
+            app.status = newStatus;
+            app.updatedAt = Date.now();
+            await app.save();
+
+            const history = new EligibilityHistory({
+              student: studentId,
+              jobDescription: jd._id,
+              oldStatus,
+              newStatus,
+              reason
+            });
+            await history.save();
+          }
+        }
+      }
+      return res.status(200).json({ message: 'Eligibility status re-evaluated successfully for selected students' });
+    }
+
+    return res.status(400).json({ message: 'Invalid bulk action' });
+  } catch (error) {
+    console.error('Error in handleBulkAction:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const updateStudentAuditFlags = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isFavorite, isBlacklisted, tpoRemarks, studentNotes } = req.body;
+
+    const student = await User.findOne({ _id: id, role: 'student' });
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    if (isFavorite !== undefined) student.isFavorite = isFavorite;
+    if (isBlacklisted !== undefined) student.isBlacklisted = isBlacklisted;
+    if (tpoRemarks !== undefined) student.tpoRemarks = tpoRemarks;
+    if (studentNotes !== undefined) student.studentNotes = studentNotes;
+
+    student.updatedAt = Date.now();
+    await student.save();
+
+    const applications = await Application.find({ student: id }).populate({
+      path: 'jobDescription',
+      select: 'title companyName package'
+    });
+
+    const returnedStudent = student.toObject();
+    delete returnedStudent.password;
+
+    return res.status(200).json({
+      student: returnedStudent,
+      applications
+    });
+  } catch (error) {
+    console.error('Error in updateStudentAuditFlags:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+

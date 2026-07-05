@@ -19,6 +19,8 @@ import {
   deleteNotification,
   getEligibilityHistory,
   getTPOAnalytics,
+  handleBulkAction,
+  updateStudentAuditFlags,
 } from '../controllers/tpoController.js';
 import { protect, allowRoles } from '../middleware/authMiddleware.js';
 
@@ -50,5 +52,7 @@ router.get('/students', protect, allowRoles('tpo'), getStudentsListForSMS);
 router.get('/student/:id', protect, allowRoles('tpo'), getStudentDetailsByTPO);
 router.put('/student/:id', protect, allowRoles('tpo'), editStudentByTPO);
 router.delete('/student/:id', protect, allowRoles('tpo'), removeStudent);
+router.post('/students/bulk', protect, allowRoles('tpo'), handleBulkAction);
+router.put('/student/:id/flags', protect, allowRoles('tpo'), updateStudentAuditFlags);
 
 export default router;
