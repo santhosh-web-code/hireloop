@@ -2,6 +2,7 @@ import User from '../models/User.js';
 import JobDescription from '../models/JobDescription.js';
 import Application from '../models/Application.js';
 import Assessment from '../models/Assessment.js';
+import Notification from '../models/Notification.js';
 
 /**
  * Student views Job Descriptions they qualify for, and those they don't with reasons.
@@ -230,6 +231,47 @@ export const updateProfile = async (req, res) => {
     if (!updatedUser) {
       return res.status(404).json({ message: 'Student user not found' });
     }
+
+    // 1. Re-check eligibility for all active applications (not Selected, not Rejected)
+    const activeApplications = await Application.find({
+      student: req.user.id,
+      status: { $nin: ['Selected', 'Rejected'] }
+    }).populate('jobDescription');
+
+    for (const app of activeApplications) {
+      const jd = app.jobDescription;
+      if (!jd) continue;
+
+      // Recheck criteria
+      const isCGPAEligible = updatedUser.cgpa === null || updatedUser.cgpa === undefined || jd.minCGPA <= updatedUser.cgpa;
+      const isBranchEligible = updatedUser.branch && jd.allowedBranches.includes(updatedUser.branch);
+      const isBacklogEligible = updatedUser.backlogs === null || updatedUser.backlogs === undefined || jd.maxBacklogs >= updatedUser.backlogs;
+
+      const isCurrentlyEligible = isCGPAEligible && isBranchEligible && isBacklogEligible;
+
+      let newStatus = app.status;
+      if (!isCurrentlyEligible) {
+        newStatus = 'Not Eligible';
+      } else if (app.status === 'Not Eligible') {
+        newStatus = 'Applied';
+      }
+
+      if (newStatus !== app.status) {
+        app.status = newStatus;
+        app.updatedAt = Date.now();
+        await app.save();
+      }
+    }
+
+    // 2. Create a notification for TPO
+    const newNotification = new Notification({
+      recipient: 'tpo',
+      type: 'profile_update',
+      studentId: req.user.id,
+      studentName: updatedUser.name,
+      message: `${updatedUser.name} updated their profile. Branch: ${updatedUser.branch || 'N/A'}, CGPA: ${updatedUser.degreeCGPA || 'N/A'}, Backlogs: ${updatedUser.backlogs !== undefined ? updatedUser.backlogs : 'N/A'}`
+    });
+    await newNotification.save();
 
     return res.status(200).json(updatedUser);
   } catch (error) {

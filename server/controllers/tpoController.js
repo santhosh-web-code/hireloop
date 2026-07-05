@@ -4,6 +4,7 @@ import sendEmail from '../utils/sendEmail.js';
 import Assessment from '../models/Assessment.js';
 import JobDescription from '../models/JobDescription.js';
 import AssessmentResult from '../models/AssessmentResult.js';
+import Notification from '../models/Notification.js';
 
 /**
  * Get all users where role is "hr" and isApproved is false (excluding password field)
@@ -114,13 +115,58 @@ export const rejectHR = async (req, res) => {
 };
 
 /**
- * Get all users where role is "student" (excluding password field)
- * @route GET /api/tpo/students
+ * Get all users where role is "student" with complete profiles and applications summary
+ * @route GET /api/tpo/all-students
  */
 export const getAllStudents = async (req, res) => {
   try {
-    const students = await User.find({ role: 'student' }).select('-password');
-    return res.status(200).json(students);
+    const students = await User.find({ role: 'student' }).select('-password').sort({ createdAt: -1 });
+
+    const studentData = await Promise.all(
+      students.map(async (student) => {
+        const apps = await Application.find({ student: student._id })
+          .populate({
+            path: 'jobDescription',
+            select: 'title companyName'
+          });
+
+        return {
+          student: {
+            _id: student._id,
+            name: student.name,
+            email: student.email,
+            studentId: student.studentId,
+            branch: student.branch,
+            degreeCGPA: student.degreeCGPA,
+            passedOutYear: student.passedOutYear,
+            tenthPercent: student.tenthPercent,
+            twelfthPercent: student.twelfthPercent,
+            backlogs: student.backlogs,
+            skills: student.skills,
+            collegeName: student.collegeName,
+            bio: student.bio,
+            resumeBase64: student.resumeBase64,
+            resumeFileName: student.resumeFileName,
+            isEmailVerified: student.isEmailVerified,
+            createdAt: student.createdAt,
+          },
+          applications: apps.map((app) => ({
+            _id: app._id,
+            jobDescription: {
+              title: app.jobDescription?.title || 'N/A',
+              companyName: app.jobDescription?.companyName || 'N/A',
+            },
+            status: app.status,
+            appliedAt: app.appliedAt,
+            mockInterviewScore: app.mockInterviewScore,
+            assessmentScore: app.assessmentScore,
+          })),
+          totalApplications: apps.length,
+        };
+      })
+    );
+
+    return res.status(200).json(studentData);
   } catch (error) {
     console.error('Error in getAllStudents:', error);
     return res.status(500).json({ message: 'Internal server error' });
@@ -274,6 +320,59 @@ export const removeHR = async (req, res) => {
     return res.status(200).json({ message: 'HR account and all associated data removed successfully' });
   } catch (error) {
     console.error('Error in removeHR:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+/**
+ * Get all notifications for TPO
+ * @route GET /api/tpo/notifications
+ */
+export const getNotifications = async (req, res) => {
+  try {
+    const notifications = await Notification.find({ recipient: 'tpo' }).sort({ createdAt: -1 });
+    return res.status(200).json(notifications);
+  } catch (error) {
+    console.error('Error in getNotifications:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+/**
+ * Mark a specific notification as read
+ * @route PUT /api/tpo/notifications/:notificationId/read
+ */
+export const markNotificationRead = async (req, res) => {
+  try {
+    const { notificationId } = req.params;
+    const notification = await Notification.findById(notificationId);
+    if (!notification) {
+      return res.status(404).json({ message: 'Notification not found' });
+    }
+
+    notification.isRead = true;
+    await notification.save();
+
+    return res.status(200).json(notification);
+  } catch (error) {
+    console.error('Error in markNotificationRead:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+/**
+ * Mark all TPO notifications as read
+ * @route PUT /api/tpo/notifications/read-all
+ */
+export const markAllNotificationsRead = async (req, res) => {
+  try {
+    await Notification.updateMany(
+      { recipient: 'tpo', isRead: false },
+      { $set: { isRead: true } }
+    );
+    return res.status(200).json({ message: 'All notifications marked as read successfully' });
+  } catch (error) {
+    console.error('Error in markAllNotificationsRead:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
 };

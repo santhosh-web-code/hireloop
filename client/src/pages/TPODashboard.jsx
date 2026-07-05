@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import Navbar from '../components/Navbar';
-import { Search, Clipboard } from 'lucide-react';
+import { Search, Clipboard, Bell } from 'lucide-react';
 import './TPODashboard.css';
 
 const TPODashboard = () => {
@@ -14,6 +14,9 @@ const TPODashboard = () => {
   const [pendingJDs, setPendingJDs] = useState([]);
   const [allApplications, setAllApplications] = useState([]);
   const [approvedHRs, setApprovedHRs] = useState([]);
+  const [allStudents, setAllStudents] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [studentProfileData, setStudentProfileData] = useState(null);
@@ -45,18 +48,22 @@ const TPODashboard = () => {
     setLoading(true);
     setError('');
     try {
-      const [statsRes, hrsRes, jdsRes, appsRes, activeHRsRes] = await Promise.all([
+      const [statsRes, hrsRes, jdsRes, appsRes, activeHRsRes, studentsRes, notificationsRes] = await Promise.all([
         api.get('/tpo/dashboard-stats'),
         api.get('/tpo/pending-hrs'),
         api.get('/jd/pending'),
         api.get('/tpo/all-applications'),
         api.get('/tpo/hrs'),
+        api.get('/tpo/all-students'),
+        api.get('/tpo/notifications'),
       ]);
       setStats(statsRes.data);
       setPendingHRs(hrsRes.data || []);
       setPendingJDs(jdsRes.data || []);
       setAllApplications(appsRes.data || []);
       setApprovedHRs(activeHRsRes.data || []);
+      setAllStudents(studentsRes.data || []);
+      setNotifications(notificationsRes.data || []);
     } catch (err) {
       console.error(err);
       setError('Failed to fetch dashboard metrics.');
@@ -119,6 +126,42 @@ const TPODashboard = () => {
     }
   };
 
+  const formatTimeAgo = (dateString) => {
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const seconds = Math.floor((now - date) / 1000);
+      
+      if (seconds < 60) return 'just now';
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `${minutes}m ago`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours}h ago`;
+      const days = Math.floor(hours / 24);
+      return `${days}d ago`;
+    } catch (err) {
+      return '';
+    }
+  };
+
+  const handleMarkAsRead = async (notificationId) => {
+    try {
+      const res = await api.put(`/tpo/notifications/${notificationId}/read`);
+      setNotifications(notifications.map(n => n._id === notificationId ? res.data : n));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await api.put('/tpo/notifications/read-all');
+      setNotifications(notifications.map(n => ({ ...n, isRead: true })));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleRemoveStudent = async (studentId) => {
     setProcessingId(studentId);
     setNotificationMessage('');
@@ -129,6 +172,9 @@ const TPODashboard = () => {
       
       // Update applications state
       setAllApplications(allApplications.filter(app => app.student?._id !== studentId));
+      
+      // Update allStudents state
+      setAllStudents(allStudents.filter(item => item.student?._id !== studentId));
       
       // Update statistics
       setStats(prev => ({
@@ -243,6 +289,24 @@ const TPODashboard = () => {
     }
   };
 
+  const handleDownloadResumeBase64 = (base64String, fileName) => {
+    try {
+      let href = base64String;
+      if (!href.startsWith('data:')) {
+        href = `data:application/pdf;base64,${base64String}`;
+      }
+      const link = document.createElement('a');
+      link.href = href;
+      link.download = fileName || 'resume.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to download resume.');
+    }
+  };
+
   const getStatusClass = (status) => {
     switch (status) {
       case 'Applied':
@@ -291,6 +355,168 @@ const TPODashboard = () => {
 
       <main className="main-content" style={{ minHeight: '100vh', backgroundColor: 'var(--bg-page)', color: 'var(--text-primary)' }}>
 
+        {/* TPO Page Header & Notifications Bell */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '2rem',
+          borderBottom: '1px solid var(--border)',
+          paddingBottom: '1rem',
+          position: 'relative'
+        }}>
+          <div>
+            <h2 style={{ margin: 0, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', fontSize: '28px', fontWeight: '700' }}>TPO Control Panel</h2>
+            <p style={{ margin: '4px 0 0 0', color: 'var(--text-secondary)', fontSize: '14px' }}>Welcome back, administrator. Manage and monitor campus recruitments.</p>
+          </div>
+
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => setShowNotifications(!showNotifications)}
+              style={{
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border)',
+                borderRadius: '50%',
+                width: '42px',
+                height: '42px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: 'var(--text-primary)',
+                position: 'relative',
+                transition: 'all 0.2s ease',
+                boxShadow: 'var(--shadow-sm)'
+              }}
+              title="Notifications"
+            >
+              <Bell size={20} />
+              {notifications.filter(n => !n.isRead).length > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: '-2px',
+                  right: '-2px',
+                  backgroundColor: 'var(--danger)',
+                  color: 'white',
+                  borderRadius: '50%',
+                  minWidth: '18px',
+                  height: '18px',
+                  fontSize: '10px',
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '2px',
+                  boxShadow: '0 0 0 2px var(--bg-page)'
+                }}>
+                  {notifications.filter(n => !n.isRead).length}
+                </span>
+              )}
+            </button>
+
+            {/* Notifications Dropdown */}
+            {showNotifications && (
+              <div style={{
+                position: 'absolute',
+                top: '52px',
+                right: 0,
+                backgroundColor: 'var(--bg-card)',
+                border: '1px solid var(--border)',
+                borderRadius: '8px',
+                width: '320px',
+                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.15), 0 4px 6px -2px rgba(0, 0, 0, 0.1)',
+                zIndex: 1000,
+                maxHeight: '400px',
+                overflowY: 'auto'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '12px 16px',
+                  borderBottom: '1px solid var(--border)'
+                }}>
+                  <span style={{ fontWeight: '700', color: 'var(--text-primary)', fontSize: '14px' }}>Notifications</span>
+                  {notifications.filter(n => !n.isRead).length > 0 && (
+                    <button
+                      onClick={handleMarkAllRead}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--accent)',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        padding: 0
+                      }}
+                    >
+                      Mark all as read
+                    </button>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  {notifications.length === 0 ? (
+                    <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                      No new notifications
+                    </div>
+                  ) : (
+                    notifications.map((notification) => (
+                      <div
+                        key={notification._id}
+                        onClick={() => handleMarkAsRead(notification._id)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '12px',
+                          padding: '12px 16px',
+                          borderBottom: '1px solid var(--border)',
+                          cursor: 'pointer',
+                          backgroundColor: notification.isRead ? 'var(--bg-card)' : 'var(--bg-surface)',
+                          transition: 'background-color 0.2s ease',
+                          textAlign: 'left'
+                        }}
+                      >
+                        <div style={{
+                          fontSize: '16px',
+                          marginTop: '2px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: '28px',
+                          height: '28px',
+                          borderRadius: '50%',
+                          backgroundColor: 'rgba(30, 58, 138, 0.05)'
+                        }}>
+                          👤
+                        </div>
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                          <span style={{ fontSize: '12px', color: 'var(--text-primary)', lineHeight: '1.4' }}>
+                            {notification.message}
+                          </span>
+                          <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+                            {formatTimeAgo(notification.createdAt)}
+                          </span>
+                        </div>
+                        {!notification.isRead && (
+                          <div style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            backgroundColor: 'var(--accent)',
+                            marginTop: '6px',
+                            flexShrink: 0
+                          }} />
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Tab Selection */}
         <div className="tpo-tabs-container">
           <button
@@ -310,6 +536,12 @@ const TPODashboard = () => {
             className={`tpo-tab-btn ${activeTab === 'pendingJDs' ? 'active' : ''}`}
           >
             Pending JD Approvals
+          </button>
+          <button
+            onClick={() => setActiveTab('students')}
+            className={`tpo-tab-btn ${activeTab === 'students' ? 'active' : ''}`}
+          >
+            All Students
           </button>
         </div>
 
@@ -844,6 +1076,296 @@ const TPODashboard = () => {
               </div>
             )}
 
+            {activeTab === 'students' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                <div className="panel-card">
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    borderBottom: '1px solid var(--border)',
+                    paddingBottom: '10px',
+                    marginBottom: '16px'
+                  }}>
+                    <h3 style={{ margin: 0, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', fontSize: '22px' }}>
+                      All Registered Students
+                    </h3>
+                    <span style={{
+                      backgroundColor: 'var(--brand)',
+                      color: 'var(--text-on-dark)',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      padding: '2px 10px',
+                      borderRadius: '20px'
+                    }}>
+                      {allStudents.length}
+                    </span>
+                  </div>
+
+                  {/* Search Bar */}
+                  <div style={{ position: 'relative', width: '100%', marginBottom: '1.5rem' }}>
+                    <Search
+                      size={18}
+                      style={{
+                        position: 'absolute',
+                        left: '12px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        color: 'var(--text-secondary)',
+                        pointerEvents: 'none'
+                      }}
+                    />
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Search students by name, branch, skills, or email..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      style={{
+                        width: '100%',
+                        paddingLeft: '36px',
+                        margin: 0,
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-sharp)',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  {(() => {
+                    const filteredStudents = allStudents.filter((item) => {
+                      const name = item.student?.name?.toLowerCase() || '';
+                      const branch = item.student?.branch?.toLowerCase() || '';
+                      const email = item.student?.email?.toLowerCase() || '';
+                      const skills = item.student?.skills?.map(s => s.toLowerCase()).join(' ') || '';
+                      const query = searchQuery.toLowerCase();
+                      return name.includes(query) || branch.includes(query) || email.includes(query) || skills.includes(query);
+                    });
+
+                    const appliedStudents = filteredStudents.filter(item => item.totalApplications > 0);
+                    const notAppliedStudents = filteredStudents.filter(item => item.totalApplications === 0);
+
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                        {/* Section A: Applied Students */}
+                        <div>
+                          <h4 style={{
+                            fontFamily: 'var(--font-display)',
+                            fontSize: '18px',
+                            color: 'var(--text-primary)',
+                            borderBottom: '1px solid var(--border)',
+                            paddingBottom: '8px',
+                            marginBottom: '16px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                          }}>
+                            Applied Students
+                            <span style={{ fontSize: '12px', background: 'var(--brand)', color: 'var(--text-on-dark)', padding: '2px 8px', borderRadius: '12px' }}>
+                              {appliedStudents.length}
+                            </span>
+                          </h4>
+
+                          {appliedStudents.length === 0 ? (
+                            <p style={{ color: 'var(--text-secondary)', fontStyle: 'italic', padding: '1rem 0' }}>No students with active applications.</p>
+                          ) : (
+                            <div className="tpo-app-cards-container">
+                              {appliedStudents.map(({ student, applications, totalApplications }) => (
+                                <div
+                                  key={student._id}
+                                  className="tpo-app-card"
+                                  style={{ borderLeft: '4px solid var(--accent)' }}
+                                >
+                                  {/* Left Section */}
+                                  <div className="tpo-app-card-left">
+                                    <h4 className="tpo-app-card-name">{student.name || 'N/A'}</h4>
+                                    <div className="tpo-app-card-meta">
+                                      <span className="tpo-app-card-branch">{student.branch || 'N/A'}</span>
+                                      {student.degreeCGPA && (
+                                        <span className="tpo-app-card-cgpa">CGPA: {student.degreeCGPA}</span>
+                                      )}
+                                    </div>
+                                    <span className="tpo-app-card-email">{student.email || 'N/A'}</span>
+                                  </div>
+
+                                  {/* Middle Section */}
+                                  <div className="tpo-app-card-middle" style={{ gap: '6px' }}>
+                                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                                      <strong>College:</strong> {student.collegeName || 'N/A'}
+                                    </span>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px' }}>
+                                      {student.skills?.slice(0, 5).map((skill, idx) => (
+                                        <span key={idx} className="skill-tag" style={{ margin: 0, fontSize: '10px', padding: '2px 6px' }}>{skill}</span>
+                                      ))}
+                                      {student.skills?.length > 5 && (
+                                        <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>+{student.skills.length - 5} more</span>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Right Section */}
+                                  <div className="tpo-app-card-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+                                    <span style={{
+                                      fontSize: '11px',
+                                      fontWeight: '700',
+                                      backgroundColor: 'rgba(30, 58, 138, 0.1)',
+                                      color: 'var(--navy-mid)',
+                                      padding: '3px 8px',
+                                      borderRadius: '4px'
+                                    }}>
+                                      {totalApplications} {totalApplications === 1 ? 'Application' : 'Applications'}
+                                    </span>
+                                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                                      <button
+                                        onClick={() => handleOpenProfileModal(student._id)}
+                                        className="tpo-app-card-btn"
+                                        style={{ margin: 0, padding: '6px 12px', fontSize: '12px' }}
+                                      >
+                                        View Profile
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          setConfirmModal({
+                                            isOpen: true,
+                                            title: 'Confirm Student Removal',
+                                            message: `Are you sure you want to remove student "${student.name || 'this student'}"? This will delete ALL their applications and data permanently.`,
+                                            onConfirm: () => handleRemoveStudent(student._id)
+                                          });
+                                        }}
+                                        style={{
+                                          border: '1px solid var(--danger)',
+                                          color: 'var(--danger)',
+                                          background: 'transparent',
+                                          padding: '6px 12px',
+                                          fontSize: '12px',
+                                          cursor: 'pointer',
+                                          borderRadius: 'var(--radius-sharp)',
+                                          fontWeight: '600',
+                                          fontFamily: 'var(--font-body)'
+                                        }}
+                                      >
+                                        Remove Student
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Section B: Registered (Not Applied) */}
+                        <div>
+                          <h4 style={{
+                            fontFamily: 'var(--font-display)',
+                            fontSize: '18px',
+                            color: 'var(--text-primary)',
+                            borderBottom: '1px solid var(--border)',
+                            paddingBottom: '8px',
+                            marginBottom: '16px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                          }}>
+                            Registered (Not Applied)
+                            <span style={{ fontSize: '12px', background: 'var(--text-secondary)', color: 'var(--bg-card)', padding: '2px 8px', borderRadius: '12px' }}>
+                              {notAppliedStudents.length}
+                            </span>
+                          </h4>
+
+                          {notAppliedStudents.length === 0 ? (
+                            <p style={{ color: 'var(--text-secondary)', fontStyle: 'italic', padding: '1rem 0' }}>No unregistered/unapplied students.</p>
+                          ) : (
+                            <div className="tpo-app-cards-container">
+                              {notAppliedStudents.map(({ student, totalApplications }) => (
+                                <div
+                                  key={student._id}
+                                  className="tpo-app-card"
+                                  style={{ borderLeft: '4px solid var(--border)' }}
+                                >
+                                  {/* Left Section */}
+                                  <div className="tpo-app-card-left">
+                                    <h4 className="tpo-app-card-name">{student.name || 'N/A'}</h4>
+                                    <div className="tpo-app-card-meta">
+                                      <span className="tpo-app-card-branch">{student.branch || 'N/A'}</span>
+                                      {student.degreeCGPA && (
+                                        <span className="tpo-app-card-cgpa">CGPA: {student.degreeCGPA}</span>
+                                      )}
+                                    </div>
+                                    <span className="tpo-app-card-email">{student.email || 'N/A'}</span>
+                                  </div>
+
+                                  {/* Middle Section */}
+                                  <div className="tpo-app-card-middle" style={{ gap: '6px' }}>
+                                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                                      <strong>College:</strong> {student.collegeName || 'N/A'}
+                                    </span>
+                                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                                      Joined: {new Date(student.createdAt).toLocaleDateString(undefined, {
+                                        month: 'short',
+                                        day: 'numeric',
+                                        year: 'numeric'
+                                      })}
+                                    </span>
+                                  </div>
+
+                                  {/* Right Section */}
+                                  <div className="tpo-app-card-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+                                    <span style={{
+                                      fontSize: '11px',
+                                      fontWeight: '700',
+                                      backgroundColor: 'var(--bg-surface)',
+                                      color: 'var(--text-secondary)',
+                                      padding: '3px 8px',
+                                      borderRadius: '4px'
+                                    }}>
+                                      No applications yet
+                                    </span>
+                                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                                      <button
+                                        onClick={() => handleOpenProfileModal(student._id)}
+                                        className="tpo-app-card-btn"
+                                        style={{ margin: 0, padding: '6px 12px', fontSize: '12px' }}
+                                      >
+                                        View Profile
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          setConfirmModal({
+                                            isOpen: true,
+                                            title: 'Confirm Student Removal',
+                                            message: `Are you sure you want to remove student "${student.name || 'this student'}"? This will delete ALL their applications and data permanently.`,
+                                            onConfirm: () => handleRemoveStudent(student._id)
+                                          });
+                                        }}
+                                        style={{
+                                          border: '1px solid var(--danger)',
+                                          color: 'var(--danger)',
+                                          background: 'transparent',
+                                          padding: '6px 12px',
+                                          fontSize: '12px',
+                                          cursor: 'pointer',
+                                          borderRadius: 'var(--radius-sharp)',
+                                          fontWeight: '600',
+                                          fontFamily: 'var(--font-body)'
+                                        }}
+                                      >
+                                        Remove Student
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
+
           </>
         )}
       </main>
@@ -990,7 +1512,33 @@ const TPODashboard = () => {
                   <h4 style={{ margin: '0 0 12px 0', fontFamily: 'var(--font-display)', color: 'var(--navy-deep)', borderBottom: '1px solid var(--slate-light)', paddingBottom: '6px' }}>
                     Resume Document
                   </h4>
-                  {studentProfileData?.student?.resumeFileName ? (
+                  {studentProfileData?.student?.resumeBase64 ? (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '12px 16px',
+                      border: '1px dashed var(--slate-light)',
+                      borderRadius: '8px',
+                      backgroundColor: 'var(--slate-bg)'
+                    }}>
+                      <span style={{ fontSize: '0.9rem', fontWeight: '600', color: 'var(--navy-deep)' }}>
+                        📄 {studentProfileData.student.resumeFileName || 'resume.pdf'}
+                      </span>
+                      <button
+                        onClick={() => handleDownloadResumeBase64(studentProfileData.student.resumeBase64, studentProfileData.student.resumeFileName)}
+                        className="hr-btn-outline"
+                        style={{
+                          padding: '6px 12px',
+                          fontSize: '12px',
+                          width: 'auto',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Download Resume
+                      </button>
+                    </div>
+                  ) : studentProfileData?.student?.resumeFileName ? (
                     <div style={{
                       display: 'flex',
                       alignItems: 'center',
