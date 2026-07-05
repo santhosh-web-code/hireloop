@@ -18,6 +18,7 @@ import {
   editStudentByTPO,
   deleteNotification,
   getEligibilityHistory,
+  getTPOAnalytics,
 } from '../controllers/tpoController.js';
 import { protect, allowRoles } from '../middleware/authMiddleware.js';
 
@@ -31,6 +32,7 @@ router.get('/students-old', protect, allowRoles('tpo'), getAllStudents);
 router.get('/all-students', protect, allowRoles('tpo'), getAllStudents);
 router.get('/hrs', protect, allowRoles('tpo'), getAllHRs);
 router.get('/dashboard-stats', protect, allowRoles('tpo'), getDashboardStats);
+router.get('/analytics', protect, allowRoles('tpo'), getTPOAnalytics);
 router.get('/all-applications', protect, allowRoles('tpo'), getAllApplications);
 router.get('/student-profile/:studentId', protect, allowRoles('tpo'), getStudentProfile);
 router.delete('/remove-student/:studentId', protect, allowRoles('tpo'), removeStudent);

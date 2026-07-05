@@ -518,3 +518,200 @@ export const getEligibilityHistory = async (req, res) => {
   }
 };
 
+const parsePackage = (pkgStr) => {
+  if (!pkgStr) return 0;
+  const match = pkgStr.match(/(\d+(?:\.\d+)?)/);
+  if (!match) return 0;
+  let val = parseFloat(match[1]);
+  if (val >= 10000) {
+    val = val / 100000;
+  }
+  return val;
+};
+
+export const getTPOAnalytics = async (req, res) => {
+  try {
+    const totalStudents = await User.countDocuments({ role: 'student' });
+    const students = await User.find({ role: 'student' }).select('-password');
+    const activeJDs = await JobDescription.find({ approvalStatus: 'approved', isActive: true });
+
+    // Determine Placed Students
+    const placedStudentsList = await Application.distinct('student', { status: 'Selected' });
+    const totalPlaced = placedStudentsList.length;
+    const totalUnplaced = totalStudents - totalPlaced;
+    const placementRate = totalStudents > 0 ? Number(((totalPlaced / totalStudents) * 100).toFixed(1)) : 0;
+
+    // Determine Dynamic Eligibility based on JDs
+    let totalEligible = 0;
+    let totalIneligible = 0;
+
+    students.forEach(student => {
+      if (activeJDs.length === 0) {
+        if ((student.cgpa || student.degreeCGPA || 0) >= 6.0 && (student.backlogs || 0) === 0) {
+          totalEligible++;
+        } else {
+          totalIneligible++;
+        }
+      } else {
+        const meetsAny = activeJDs.some(jd => {
+          const meetsCGPA = student.cgpa === null || student.cgpa === undefined || jd.minCGPA <= student.cgpa;
+          const meetsBranch = student.branch && jd.allowedBranches.includes(student.branch);
+          const meetsBacklogs = student.backlogs === null || student.backlogs === undefined || jd.maxBacklogs >= student.backlogs;
+          return meetsCGPA && meetsBranch && meetsBacklogs;
+        });
+        if (meetsAny) {
+          totalEligible++;
+        } else {
+          totalIneligible++;
+        }
+      }
+    });
+
+    // General Applications counters
+    const totalApplications = await Application.countDocuments();
+    const totalInterviews = await Application.countDocuments({ status: { $in: ['Interview Scheduled', 'Shortlisted', 'Interview'] } });
+    const totalOffers = await Application.countDocuments({ status: 'Selected' });
+
+    // Package metrics
+    const selections = await Application.find({ status: 'Selected' }).populate('jobDescription');
+    let highestPackageVal = 0;
+    let totalPackageVal = 0;
+    let packageCount = 0;
+
+    selections.forEach(sel => {
+      const jd = sel.jobDescription;
+      if (jd && jd.package) {
+        const pkgNum = parsePackage(jd.package);
+        if (pkgNum > highestPackageVal) {
+          highestPackageVal = pkgNum;
+        }
+        if (pkgNum > 0) {
+          totalPackageVal += pkgNum;
+          packageCount++;
+        }
+      }
+    });
+
+    const avgPackageVal = packageCount > 0 ? Number((totalPackageVal / packageCount).toFixed(2)) : 0;
+
+    // Recruiters and Applications per Company
+    const allApps = await Application.find().populate('jobDescription').populate('student', 'name branch');
+    const companyStats = {};
+    allApps.forEach(app => {
+      const company = app.jobDescription?.companyName || 'N/A';
+      if (!companyStats[company]) {
+        companyStats[company] = { totalApps: 0, offers: 0 };
+      }
+      companyStats[company].totalApps++;
+      if (app.status === 'Selected') {
+        companyStats[company].offers++;
+      }
+    });
+
+    const topRecruiters = Object.entries(companyStats)
+      .map(([name, stat]) => ({ companyName: name, offers: stat.offers }))
+      .sort((a, b) => b.offers - a.offers)
+      .slice(0, 5);
+
+    const appsPerCompany = Object.entries(companyStats)
+      .map(([name, stat]) => ({ companyName: name, count: stat.totalApps }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    // Branch Wise Analytics
+    const branchStats = {};
+    students.forEach(student => {
+      const branch = student.branch || 'Unknown';
+      if (!branchStats[branch]) {
+        branchStats[branch] = { total: 0, placed: 0 };
+      }
+      branchStats[branch].total++;
+    });
+
+    placedStudentsList.forEach(studentId => {
+      const student = students.find(s => s._id.toString() === studentId.toString());
+      if (student) {
+        const branch = student.branch || 'Unknown';
+        if (branchStats[branch]) {
+          branchStats[branch].placed++;
+        }
+      }
+    });
+
+    const branchAnalytics = Object.entries(branchStats).map(([name, stat]) => ({
+      branch: name,
+      total: stat.total,
+      placed: stat.placed,
+      rate: stat.total > 0 ? Math.round((stat.placed / stat.total) * 100) : 0
+    }));
+
+    // Monthly Placements and Application Trends (past 6 months)
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthlyStats = {};
+
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      monthlyStats[key] = {
+        monthName: `${monthNames[d.getMonth()]}`,
+        placements: 0,
+        applications: 0
+      };
+    }
+
+    allApps.forEach(app => {
+      const appDate = new Date(app.appliedAt);
+      const appKey = `${appDate.getFullYear()}-${String(appDate.getMonth() + 1).padStart(2, '0')}`;
+      if (monthlyStats[appKey]) {
+        monthlyStats[appKey].applications++;
+      }
+
+      if (app.status === 'Selected') {
+        const selDate = new Date(app.updatedAt);
+        const selKey = `${selDate.getFullYear()}-${String(selDate.getMonth() + 1).padStart(2, '0')}`;
+        if (monthlyStats[selKey]) {
+          monthlyStats[selKey].placements++;
+        }
+      }
+    });
+
+    const monthlyData = Object.values(monthlyStats);
+
+    // Latest Registered and Upcoming Interviews
+    const latestRegistrations = await User.find({ role: 'student' })
+      .select('name studentId branch createdAt')
+      .sort({ createdAt: -1 })
+      .limit(5);
+
+    const upcomingInterviews = await Application.find({ status: { $in: ['Interview Scheduled', 'Shortlisted'] } })
+      .populate('student', 'name studentId branch')
+      .populate('jobDescription', 'title companyName')
+      .sort({ updatedAt: -1 })
+      .limit(5);
+
+    return res.status(200).json({
+      totalStudents,
+      totalPlaced,
+      totalUnplaced,
+      placementRate,
+      totalEligible,
+      totalIneligible,
+      totalApplications,
+      totalInterviews,
+      totalOffers,
+      highestPackage: highestPackageVal > 0 ? `${highestPackageVal} LPA` : '0 LPA',
+      averagePackage: avgPackageVal > 0 ? `${avgPackageVal} LPA` : '0 LPA',
+      topRecruiters,
+      appsPerCompany,
+      branchAnalytics,
+      monthlyData,
+      latestRegistrations,
+      upcomingInterviews
+    });
+  } catch (error) {
+    console.error('Error in getTPOAnalytics:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+

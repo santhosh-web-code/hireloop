@@ -44,6 +44,8 @@ const TPODashboard = () => {
   const [notifFieldFilter, setNotifFieldFilter] = useState('All');
   const [expandedNotifs, setExpandedNotifs] = useState({});
   const [eligibilityHistory, setEligibilityHistory] = useState([]);
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const [stats, setStats] = useState({
     totalStudents: 0,
     totalHRs: 0,
@@ -53,7 +55,7 @@ const TPODashboard = () => {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('analytics');
 
   const [processingId, setProcessingId] = useState(null);
   const [rejectingJDId, setRejectingJDId] = useState(null);
@@ -71,7 +73,8 @@ const TPODashboard = () => {
     setLoading(true);
     setError('');
     try {
-      const [statsRes, hrsRes, jdsRes, appsRes, activeHRsRes, studentsRes, notificationsRes] = await Promise.all([
+      setAnalyticsLoading(true);
+      const [statsRes, hrsRes, jdsRes, appsRes, activeHRsRes, studentsRes, notificationsRes, historyRes, analyticsRes] = await Promise.all([
         api.get('/tpo/dashboard-stats'),
         api.get('/tpo/pending-hrs'),
         api.get('/jd/pending'),
@@ -80,6 +83,7 @@ const TPODashboard = () => {
         api.get('/tpo/students'),
         api.get('/tpo/notifications'),
         api.get('/tpo/eligibility-history'),
+        api.get('/tpo/analytics'),
       ]);
       setStats(statsRes.data);
       setPendingHRs(hrsRes.data || []);
@@ -89,6 +93,8 @@ const TPODashboard = () => {
       setAllStudents(studentsRes.data || []);
       setNotifications(notificationsRes.data || []);
       setEligibilityHistory(historyRes.data || []);
+      setAnalyticsData(analyticsRes.data || null);
+      setAnalyticsLoading(false);
     } catch (err) {
       console.error(err);
       setError('Failed to fetch dashboard metrics.');
@@ -480,6 +486,26 @@ const TPODashboard = () => {
         {/* Left Sidebar */}
         <aside className="tpo-sidebar">
           <button
+            onClick={() => setActiveTab('analytics')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '12px 16px',
+              borderRadius: '8px',
+              background: activeTab === 'analytics' ? 'var(--navy-mid)' : 'transparent',
+              color: activeTab === 'analytics' ? 'white' : 'var(--text-primary)',
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: '600',
+              textAlign: 'left',
+              fontSize: '14px',
+              transition: 'all 0.2s'
+            }}
+          >
+            📈 Analytics
+          </button>
+          <button
             onClick={() => setActiveTab('overview')}
             style={{
               display: 'flex',
@@ -773,6 +799,331 @@ const TPODashboard = () => {
           </div>
         ) : (
           <>
+            {activeTab === 'analytics' && (
+              analyticsLoading ? (
+                <div className="loader-container">
+                  <span className="spinner"></span>
+                  <p style={{ marginTop: '1rem', color: 'var(--text-secondary)' }}>Loading analytics dashboard...</p>
+                </div>
+              ) : !analyticsData ? (
+                <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
+                  <p>No placement analytics metrics available yet.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                  {/* Header title */}
+                  <div style={{ borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
+                    <h2 style={{ margin: 0, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', fontSize: '24px', fontWeight: 'bold' }}>
+                      Placement Analytics & Insights
+                    </h2>
+                    <p style={{ margin: '4px 0 0 0', color: 'var(--text-secondary)', fontSize: '14px' }}>
+                      Real-time statistics, recruiter selection rates, and department analytics overview
+                    </p>
+                  </div>
+
+                  {/* Top Stats Grid */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                    gap: '16px'
+                  }}>
+                    <div className="stats-card" style={{ borderLeft: '4px solid #3b82f6' }}>
+                      <span className="stats-label">Total Students</span>
+                      <span className="stats-val" style={{ color: '#3b82f6' }}>{analyticsData.totalStudents}</span>
+                    </div>
+                    <div className="stats-card" style={{ borderLeft: '4px solid #10b981' }}>
+                      <span className="stats-label">Placed Students</span>
+                      <span className="stats-val" style={{ color: '#10b981' }}>{analyticsData.totalPlaced}</span>
+                    </div>
+                    <div className="stats-card" style={{ borderLeft: '4px solid #ef4444' }}>
+                      <span className="stats-label">Unplaced Students</span>
+                      <span className="stats-val" style={{ color: '#ef4444' }}>{analyticsData.totalUnplaced}</span>
+                    </div>
+                    <div className="stats-card" style={{ borderLeft: '4px solid #06b6d4' }}>
+                      <span className="stats-label">Eligible Students</span>
+                      <span className="stats-val" style={{ color: '#06b6d4' }}>{analyticsData.totalEligible}</span>
+                    </div>
+                    <div className="stats-card" style={{ borderLeft: '4px solid #f59e0b' }}>
+                      <span className="stats-label">Applications</span>
+                      <span className="stats-val" style={{ color: '#f59e0b' }}>{analyticsData.totalApplications}</span>
+                    </div>
+                    <div className="stats-card" style={{ borderLeft: '4px solid #8b5cf6' }}>
+                      <span className="stats-label">Placement Rate</span>
+                      <span className="stats-val" style={{ color: '#8b5cf6' }}>{analyticsData.placementRate}%</span>
+                    </div>
+                    <div className="stats-card" style={{ borderLeft: '4px solid #10b981' }}>
+                      <span className="stats-label">Highest Package</span>
+                      <span className="stats-val" style={{ color: '#10b981', fontSize: '1.6rem' }}>{analyticsData.highestPackage}</span>
+                    </div>
+                    <div className="stats-card" style={{ borderLeft: '4px solid #3b82f6' }}>
+                      <span className="stats-label">Average Package</span>
+                      <span className="stats-val" style={{ color: '#3b82f6', fontSize: '1.6rem' }}>{analyticsData.averagePackage}</span>
+                    </div>
+                  </div>
+
+                  {/* Second Row: Donut + Branch */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem' }}>
+                    {/* Donut placement rate */}
+                    <div className="panel-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '260px' }}>
+                      <h3 style={{ alignSelf: 'flex-start', margin: '0 0 16px 0', fontFamily: 'var(--font-display)', color: 'var(--text-primary)', fontSize: '18px', fontWeight: 600 }}>
+                        Overall Placement Breakdown
+                      </h3>
+                      <div style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-around', gap: '16px', flexWrap: 'wrap' }}>
+                        <div style={{ width: '150px', height: '150px' }}>
+                          <svg width="100%" height="100%" viewBox="0 0 150 150">
+                            <circle cx="75" cy="75" r="50" fill="transparent" stroke="var(--border)" strokeWidth="14" />
+                            <circle
+                              cx="75"
+                              cy="75"
+                              r="50"
+                              fill="transparent"
+                              stroke="#10b981"
+                              strokeWidth="14"
+                              strokeDasharray={314.16}
+                              strokeDashoffset={314.16 * (1 - (analyticsData.placementRate / 100))}
+                              transform="rotate(-90 75 75)"
+                              strokeLinecap="round"
+                              style={{ transition: 'stroke-dashoffset 0.8s ease-in-out' }}
+                            />
+                            <text x="75" y="70" textAnchor="middle" dominantBaseline="middle" style={{ fontSize: '18px', fontWeight: 'bold', fill: 'var(--text-primary)' }}>
+                              {analyticsData.placementRate}%
+                            </text>
+                            <text x="75" y="90" textAnchor="middle" dominantBaseline="middle" style={{ fontSize: '10px', fill: 'var(--text-secondary)', fontWeight: 600 }}>
+                              Placed
+                            </text>
+                          </svg>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#10b981' }} />
+                            <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Placed ({analyticsData.totalPlaced})</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: 'var(--border)' }} />
+                            <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Unplaced ({analyticsData.totalUnplaced})</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Department wise rates */}
+                    <div className="panel-card" style={{ minHeight: '260px' }}>
+                      <h3 style={{ margin: '0 0 16px 0', fontFamily: 'var(--font-display)', color: 'var(--text-primary)', fontSize: '18px', fontWeight: 600 }}>
+                        Department Wise Placement Rates
+                      </h3>
+                      {(!analyticsData.branchAnalytics || analyticsData.branchAnalytics.length === 0) ? (
+                        <p style={{ color: 'var(--text-secondary)', fontStyle: 'italic', textAlign: 'center', padding: '2rem' }}>No branch data available.</p>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '6px 0' }}>
+                          {analyticsData.branchAnalytics.map((b, idx) => (
+                            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <span style={{ width: '60px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{b.branch}</span>
+                              <div style={{ flex: 1, height: '12px', backgroundColor: 'var(--bg-surface)', borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--border)' }}>
+                                <div style={{ width: `${b.rate}%`, height: '100%', backgroundColor: '#3b82f6', borderRadius: '10px', transition: 'width 0.8s ease' }} />
+                              </div>
+                              <span style={{ width: '40px', fontSize: '13px', fontWeight: 700, textAlign: 'right', color: 'var(--text-primary)' }}>{b.rate}%</span>
+                              <span style={{ fontSize: '11px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>({b.placed}/{b.total})</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Third Row: Line chart + vertical bars */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem' }}>
+                    {/* Monthly trend line */}
+                    <div className="panel-card" style={{ minHeight: '280px' }}>
+                      <h3 style={{ margin: '0 0 16px 0', fontFamily: 'var(--font-display)', color: 'var(--text-primary)', fontSize: '18px', fontWeight: 600 }}>
+                        Monthly Placement & Application Trends
+                      </h3>
+                      {(!analyticsData.monthlyData || analyticsData.monthlyData.length === 0) ? (
+                        <p style={{ color: 'var(--text-secondary)', fontStyle: 'italic', textAlign: 'center', padding: '2rem' }}>No trend metrics logged yet.</p>
+                      ) : (
+                        <div>
+                          <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end', marginBottom: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                              <span style={{ display: 'inline-block', width: '12px', height: '3px', backgroundColor: '#3b82f6' }} /> Applications
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                              <span style={{ display: 'inline-block', width: '12px', height: '3px', backgroundColor: '#10b981' }} /> Placements
+                            </div>
+                          </div>
+                          <div style={{ width: '100%', overflowX: 'auto' }}>
+                            <svg width="100%" height="200" viewBox="0 0 380 200" style={{ overflow: 'visible', minWidth: '320px' }}>
+                              {(() => {
+                                const monthly = analyticsData.monthlyData || [];
+                                const maxVal = Math.max(...monthly.map(m => Math.max(m.placements || 0, m.applications || 0)), 5);
+                                const placementsPoints = monthly.map((m, idx) => `${40 + idx * 60},${160 - ((m.placements || 0) / maxVal) * 120}`).join(' ');
+                                const applicationsPoints = monthly.map((m, idx) => `${40 + idx * 60},${160 - ((m.applications || 0) / maxVal) * 120}`).join(' ');
+
+                                return (
+                                  <>
+                                    {/* Grid Lines */}
+                                    {[0, 0.25, 0.5, 0.75, 1].map((p, idx) => (
+                                      <g key={idx}>
+                                        <line x1="30" y1={160 - p * 120} x2="350" y2={160 - p * 120} stroke="var(--border)" strokeDasharray="2 2" />
+                                        <text x="15" y={164 - p * 120} fontSize="9" fill="var(--text-secondary)" textAnchor="middle">
+                                          {Math.round(p * maxVal)}
+                                        </text>
+                                      </g>
+                                    ))}
+
+                                    {/* Line paths */}
+                                    <polyline fill="none" stroke="#3b82f6" strokeWidth="3" points={applicationsPoints} />
+                                    <polyline fill="none" stroke="#10b981" strokeWidth="3" points={placementsPoints} />
+
+                                    {/* Dots */}
+                                    {monthly.map((m, idx) => {
+                                      const x = 40 + idx * 60;
+                                      const yApp = 160 - ((m.applications || 0) / maxVal) * 120;
+                                      const yPlac = 160 - ((m.placements || 0) / maxVal) * 120;
+                                      return (
+                                        <g key={idx}>
+                                          <circle cx={x} cy={yApp} r="4" fill="#3b82f6" stroke="#ffffff" strokeWidth="2" />
+                                          <circle cx={x} cy={yPlac} r="4" fill="#10b981" stroke="#ffffff" strokeWidth="2" />
+                                          <text x={x} y="180" fontSize="9" fill="var(--text-secondary)" textAnchor="middle">
+                                            {m.monthName}
+                                          </text>
+                                        </g>
+                                      );
+                                    })}
+                                  </>
+                                );
+                              })()}
+                            </svg>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Top recruiters bar chart */}
+                    <div className="panel-card" style={{ minHeight: '280px' }}>
+                      <h3 style={{ margin: '0 0 16px 0', fontFamily: 'var(--font-display)', color: 'var(--text-primary)', fontSize: '18px', fontWeight: 600 }}>
+                        Top Recruiters by Offers Made
+                      </h3>
+                      {(!analyticsData.topRecruiters || analyticsData.topRecruiters.length === 0) ? (
+                        <p style={{ color: 'var(--text-secondary)', fontStyle: 'italic', textAlign: 'center', padding: '2rem' }}>No offers registered yet.</p>
+                      ) : (
+                        <div style={{ width: '100%', overflowX: 'auto' }}>
+                          <svg width="100%" height="200" viewBox="0 0 400 200" style={{ overflow: 'visible', minWidth: '350px' }}>
+                            {(() => {
+                              const recruiters = analyticsData.topRecruiters || [];
+                              const maxOffers = Math.max(...recruiters.map(r => r.offers || 0), 1);
+                              return (
+                                <>
+                                  {[0, 0.25, 0.5, 0.75, 1].map((p, idx) => (
+                                    <g key={idx}>
+                                      <line x1="40" y1={160 - p * 120} x2="380" y2={160 - p * 120} stroke="var(--border)" strokeDasharray="3 3" />
+                                      <text x="18" y={164 - p * 120} fontSize="9" fill="var(--text-secondary)" textAnchor="middle">
+                                        {Math.round(p * maxOffers)}
+                                      </text>
+                                    </g>
+                                  ))}
+
+                                  {recruiters.map((r, idx) => {
+                                    const barHeight = ((r.offers || 0) / maxOffers) * 120;
+                                    const x = 60 + idx * 65;
+                                    const y = 160 - barHeight;
+                                    return (
+                                      <g key={idx}>
+                                        <rect x={x} y={y} width="28" height={barHeight} fill="#f59e0b" rx="3" />
+                                        <text x={x + 14} y={y - 8} fontSize="9" fontWeight="bold" fill="var(--text-primary)" textAnchor="middle">
+                                          {r.offers}
+                                        </text>
+                                        <text x={x + 14} y="180" fontSize="9" fill="var(--text-secondary)" textAnchor="middle" transform={`rotate(-15 ${x + 14} 180)`}>
+                                          {r.companyName}
+                                        </text>
+                                      </g>
+                                    );
+                                  })}
+                                </>
+                              );
+                            })()}
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Fourth Row: Latest Registrations + Upcoming Interviews */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem' }}>
+                    {/* Latest registered */}
+                    <div className="panel-card">
+                      <h3 style={{ borderBottom: '1px solid var(--border)', paddingBottom: '10px', marginBottom: '16px', fontFamily: 'var(--font-display)', color: 'var(--text-primary)', fontSize: '18px', fontWeight: 600 }}>
+                        Latest Student Registrations
+                      </h3>
+                      {(!analyticsData.latestRegistrations || analyticsData.latestRegistrations.length === 0) ? (
+                        <p style={{ color: 'var(--text-secondary)', fontStyle: 'italic', textAlign: 'center', padding: '1rem' }}>No student accounts registered recently.</p>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                          {analyticsData.latestRegistrations.map((s, idx) => (
+                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '8px' }}>
+                              <div>
+                                <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{s.name}</strong>
+                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Branch: {s.branch} | ID: {s.studentId}</div>
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                                <span style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>{new Date(s.createdAt).toLocaleDateString()}</span>
+                                <button
+                                  onClick={() => handleOpenProfileModal(s._id)}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: 'var(--accent)',
+                                    fontSize: '11px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    padding: 0
+                                  }}
+                                >
+                                  View Profile
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Upcoming interviews */}
+                    <div className="panel-card">
+                      <h3 style={{ borderBottom: '1px solid var(--border)', paddingBottom: '10px', marginBottom: '16px', fontFamily: 'var(--font-display)', color: 'var(--text-primary)', fontSize: '18px', fontWeight: 600 }}>
+                        Upcoming Student Interviews
+                      </h3>
+                      {(!analyticsData.upcomingInterviews || analyticsData.upcomingInterviews.length === 0) ? (
+                        <p style={{ color: 'var(--text-secondary)', fontStyle: 'italic', textAlign: 'center', padding: '1rem' }}>No interviews scheduled currently.</p>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                          {analyticsData.upcomingInterviews.map((item, idx) => (
+                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '8px' }}>
+                              <div>
+                                <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{item.student?.name}</strong>
+                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                                  {item.jobDescription?.companyName} &bull; {item.jobDescription?.title}
+                                </div>
+                              </div>
+                              <span style={{
+                                backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                                color: '#8b5cf6',
+                                fontSize: '10px',
+                                padding: '3px 8px',
+                                borderRadius: '4px',
+                                fontWeight: 'bold'
+                              }}>
+                                Scheduled
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )
+            )}
+
             {activeTab === 'overview' && (
               <div style={{ display: 'flex', gap: '2rem', flexDirection: 'row', flexWrap: 'wrap' }} className="tpo-overview-layout">
                 {/* Left Column */}
