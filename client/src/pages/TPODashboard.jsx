@@ -1797,39 +1797,48 @@ const TPODashboard = () => {
               </div>
             )}
 
-                  {activeTab === 'students' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                {/* Statistics Cards */}
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                  gap: '16px'
-                }}>
-                  <div className="stats-card" style={{ borderLeft: '4px solid var(--navy-mid)' }}>
-                    <span className="stats-label">Total Registered</span>
-                    <span className="stats-val" style={{ color: 'var(--navy-mid)' }}>{allStudents.length}</span>
-                  </div>
-                  <div className="stats-card" style={{ borderLeft: '4px solid #10b981' }}>
-                    <span className="stats-label">Placed Students</span>
-                    <span className="stats-val" style={{ color: '#10b981' }}>
-                      {allStudents.filter(item => item.applications.some(app => app.status === 'Selected')).length}
-                    </span>
-                  </div>
-                  <div className="stats-card" style={{ borderLeft: '4px solid #f59e0b' }}>
-                    <span className="stats-label">Starred Favorites</span>
-                    <span className="stats-val" style={{ color: '#f59e0b' }}>
-                      {allStudents.filter(item => item.student?.isFavorite).length}
-                    </span>
-                  </div>
-                  <div className="stats-card" style={{ borderLeft: '4px solid #ef4444' }}>
-                    <span className="stats-label">Blacklisted</span>
-                    <span className="stats-val" style={{ color: '#ef4444' }}>
-                      {allStudents.filter(item => item.student?.isBlacklisted).length}
-                    </span>
-                  </div>
-                </div>
+                  {activeTab === 'students' && (() => {
+                    const studentsList = Array.isArray(allStudents) ? allStudents : [];
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                        {/* Statistics Cards */}
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                          gap: '16px'
+                        }}>
+                          <div className="stats-card" style={{ borderLeft: '4px solid var(--navy-mid)' }}>
+                            <span className="stats-label">Total Registered</span>
+                            <span className="stats-val" style={{ color: 'var(--navy-mid)' }}>{studentsList.length}</span>
+                          </div>
+                          <div className="stats-card" style={{ borderLeft: '4px solid #10b981' }}>
+                            <span className="stats-label">Placed Students</span>
+                            <span className="stats-val" style={{ color: '#10b981' }}>
+                              {studentsList.filter(item => item.applications && item.applications.some(app => app.status === 'Selected')).length}
+                            </span>
+                          </div>
+                          <div className="stats-card" style={{ borderLeft: '4px solid #f59e0b' }}>
+                            <span className="stats-label">Starred Favorites</span>
+                            <span className="stats-val" style={{ color: '#f59e0b' }}>
+                              {studentsList.filter(item => item.student?.isFavorite).length}
+                            </span>
+                          </div>
+                          <div className="stats-card" style={{ borderLeft: '4px solid #ef4444' }}>
+                            <span className="stats-label">Blacklisted</span>
+                            <span className="stats-val" style={{ color: '#ef4444' }}>
+                              {studentsList.filter(item => item.student?.isBlacklisted).length}
+                            </span>
+                          </div>
+                        </div>
 
-                <div className="panel-card">
+                        {studentsList.length === 0 ? (
+                          <div className="panel-card" style={{ textAlign: 'center', padding: '4rem 2rem', color: 'var(--text-secondary)' }}>
+                            <Clipboard size={64} style={{ strokeWidth: 1.2, color: 'var(--text-secondary)', marginBottom: '1.5rem', opacity: 0.7 }} />
+                            <h3 style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>No Students Registered</h3>
+                            <p style={{ margin: 0, fontSize: '14px' }}>There are currently no registered students in the system.</p>
+                          </div>
+                        ) : (
+                          <div className="panel-card">
                   {/* Title & Bulk action controls */}
                   <div style={{
                     display: 'flex',
@@ -2140,7 +2149,7 @@ const TPODashboard = () => {
 
                   {/* Student Directory Table Container */}
                   {(() => {
-                    const filtered = allStudents.filter(item => {
+                    const filtered = studentsList.filter(item => {
                       const student = item.student;
                       if (!student) return false;
 
@@ -2228,6 +2237,7 @@ const TPODashboard = () => {
                             <tbody>
                               {currentRows.map((item) => {
                                 const s = item.student;
+                                if (!s) return null;
                                 const isSelected = selectedSmsStudents.includes(s._id);
                                 const isPlaced = item.applications?.some(app => app.status === 'Selected');
                                 
@@ -2348,6 +2358,7 @@ const TPODashboard = () => {
                                         <button
                                           onClick={() => setEditStudentData({
                                             id: s._id,
+                                            _id: s._id,
                                             name: s.name || '',
                                             email: s.email || '',
                                             studentId: s.studentId || '',
@@ -2391,6 +2402,28 @@ const TPODashboard = () => {
                                           }}
                                         >
                                           {s.isDisabled ? 'Enable' : 'Disable'}
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            setConfirmModal({
+                                              isOpen: true,
+                                              title: 'Remove Student Account',
+                                              message: `Are you sure you want to permanently delete the account of ${s.name} (${s.studentId || 'N/A'})?`,
+                                              onConfirm: () => handleRemoveStudent(s._id)
+                                            });
+                                          }}
+                                          style={{
+                                            border: '1px solid var(--danger)',
+                                            color: 'var(--danger)',
+                                            background: 'transparent',
+                                            padding: '4px 8px',
+                                            borderRadius: '4px',
+                                            cursor: 'pointer',
+                                            fontSize: '11.5px',
+                                            fontWeight: '600'
+                                          }}
+                                        >
+                                          Delete
                                         </button>
                                       </div>
                                     </td>
@@ -2470,10 +2503,11 @@ const TPODashboard = () => {
                       </div>
                     );
                   })()}
-                </div>
+                  </div>
+                )}
               </div>
-            )}
-
+            );
+          })()}
             {activeTab === 'notifications-center' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                 {/* Stats Grid */}

@@ -278,7 +278,10 @@ export const getStudentProfile = async (req, res) => {
  */
 export const removeStudent = async (req, res) => {
   try {
-    const { studentId } = req.params;
+    const studentId = req.params.studentId || req.params.id;
+    if (!studentId) {
+      return res.status(400).json({ message: 'studentId is required' });
+    }
 
     const student = await User.findOne({ _id: studentId, role: 'student' });
     if (!student) {
@@ -464,7 +467,10 @@ export const editStudentByTPO = async (req, res) => {
     if (email !== undefined) student.email = email;
     if (studentId !== undefined) student.studentId = studentId;
     if (branch !== undefined) student.branch = branch;
-    if (cgpa !== undefined) student.cgpa = cgpa;
+    if (cgpa !== undefined) {
+      student.cgpa = cgpa;
+      student.degreeCGPA = cgpa;
+    }
     if (backlogs !== undefined) student.backlogs = backlogs;
     if (passedOutYear !== undefined) student.passedOutYear = passedOutYear;
     if (phone !== undefined) student.phone = phone;
