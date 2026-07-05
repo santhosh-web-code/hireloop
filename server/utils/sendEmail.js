@@ -3,24 +3,17 @@ import nodemailer from 'nodemailer';
 const sendEmail = async (to, subject, html) => {
   try {
     const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
+      host: 'smtp-relay.brevo.com',
       port: 587,
       secure: false,
-      family: 4,
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
       },
-      connectionTimeout: 30000,
-      greetingTimeout: 30000,
-      socketTimeout: 30000,
     });
 
-    await transporter.verify();
-    console.log("SMTP Connected");
-
     const mailOptions = {
-      from: process.env.EMAIL_USER,
+      from: `"HireLoop" <${process.env.SMTP_USER}>`,
       to,
       subject,
       html,
@@ -31,7 +24,7 @@ const sendEmail = async (to, subject, html) => {
     return info;
   } catch (error) {
     console.error(`Error sending email to ${to}:`, error);
-    return null; // Never throw to prevent crashing the calling code
+    return null;
   }
 };
 
