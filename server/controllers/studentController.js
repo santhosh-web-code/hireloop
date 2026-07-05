@@ -4,6 +4,7 @@ import Application from '../models/Application.js';
 import Assessment from '../models/Assessment.js';
 import Notification from '../models/Notification.js';
 import EligibilityHistory from '../models/EligibilityHistory.js';
+import { updateStudentPlacementStatus } from '../utils/placementWorkflow.js';
 
 /**
  * Student views Job Descriptions they qualify for, and those they don't with reasons.
@@ -148,6 +149,7 @@ export const applyToJD = async (req, res) => {
     });
 
     await newApplication.save();
+    await updateStudentPlacementStatus(studentId, 'Applied');
 
     let assessmentRequired = false;
     let assessmentId = null;

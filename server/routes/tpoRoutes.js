@@ -21,6 +21,9 @@ import {
   getTPOAnalytics,
   handleBulkAction,
   updateStudentAuditFlags,
+  manuallyUpdatePlacementStatus,
+  getStudentPlacementTimeline,
+  generatePlacementReport,
 } from '../controllers/tpoController.js';
 import { protect, allowRoles } from '../middleware/authMiddleware.js';
 
@@ -54,5 +57,8 @@ router.put('/student/:id', protect, allowRoles('tpo'), editStudentByTPO);
 router.delete('/student/:id', protect, allowRoles('tpo'), removeStudent);
 router.post('/students/bulk', protect, allowRoles('tpo'), handleBulkAction);
 router.put('/student/:id/flags', protect, allowRoles('tpo'), updateStudentAuditFlags);
+router.put('/student/:id/placement-status', protect, allowRoles('tpo'), manuallyUpdatePlacementStatus);
+router.get('/student/:id/placement-timeline', protect, allowRoles('tpo'), getStudentPlacementTimeline);
+router.get('/reports/placements', protect, allowRoles('tpo'), generatePlacementReport);
 
 export default router;

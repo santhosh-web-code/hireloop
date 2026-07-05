@@ -6,6 +6,8 @@ import JobDescription from '../models/JobDescription.js';
 import AssessmentResult from '../models/AssessmentResult.js';
 import Notification from '../models/Notification.js';
 import EligibilityHistory from '../models/EligibilityHistory.js';
+import PlacementHistory from '../models/PlacementHistory.js';
+import { updateStudentPlacementStatus } from '../utils/placementWorkflow.js';
 
 /**
  * Get all users where role is "hr" and isApproved is false (excluding password field)
@@ -848,6 +850,73 @@ export const updateStudentAuditFlags = async (req, res) => {
     });
   } catch (error) {
     console.error('Error in updateStudentAuditFlags:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const manuallyUpdatePlacementStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { placementStatus, remarks } = req.body;
+
+    if (!placementStatus) {
+      return res.status(400).json({ message: 'placementStatus is required' });
+    }
+
+    const updated = await updateStudentPlacementStatus(id, placementStatus, 'tpo', remarks);
+    if (!updated) {
+      return res.status(404).json({ message: 'Student not found or failed to transition' });
+    }
+
+    return res.status(200).json({
+      message: 'Placement status updated successfully',
+      student: updated
+    });
+  } catch (error) {
+    console.error('Error in manuallyUpdatePlacementStatus:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const getStudentPlacementTimeline = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const history = await PlacementHistory.find({ student: id }).sort({ createdAt: -1 });
+    return res.status(200).json(history);
+  } catch (error) {
+    console.error('Error in getStudentPlacementTimeline:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const generatePlacementReport = async (req, res) => {
+  try {
+    const students = await User.find({ role: 'student' }).sort({ name: 1 });
+    const applications = await Application.find();
+
+    let csvContent = 'Name,Roll Number,Email,Branch,Graduation Year,CGPA,Placement Status,Total Applications,Passed Assessments\n';
+
+    students.forEach(student => {
+      const studentApps = applications.filter(app => app.student.toString() === student._id.toString());
+      const totalApps = studentApps.length;
+      const passedAssessments = studentApps.filter(app => app.assessmentAttempted && app.assessmentScore !== null).length;
+
+      const name = student.name ? student.name.replace(/,/g, ' ') : '';
+      const roll = student.studentId ? student.studentId.replace(/,/g, ' ') : '';
+      const email = student.email || '';
+      const branch = student.branch || '';
+      const year = student.passedOutYear || '';
+      const cgpa = student.cgpa || student.degreeCGPA || '0';
+      const status = student.placementStatus || 'Registered';
+
+      csvContent += `"${name}","${roll}","${email}","${branch}","${year}","${cgpa}","${status}",${totalApps},${passedAssessments}\n`;
+    });
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=Placement_Report.csv');
+    return res.status(200).send(csvContent);
+  } catch (error) {
+    console.error('Error in generatePlacementReport:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
 };

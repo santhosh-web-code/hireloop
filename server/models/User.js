@@ -124,6 +124,23 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  placementStatus: {
+    type: String,
+    enum: [
+      'Registered',
+      'Eligible',
+      'Applied',
+      'Assessment Completed',
+      'Interview Scheduled',
+      'Interview Completed',
+      'Selected',
+      'Rejected',
+      'Offer Released',
+      'Offer Accepted',
+      'Placed'
+    ],
+    default: 'Registered'
+  },
   isDisabled: {
     type: Boolean,
     default: false,

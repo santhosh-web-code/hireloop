@@ -54,6 +54,9 @@ const TPODashboard = () => {
   const [notifFieldFilter, setNotifFieldFilter] = useState('All');
   const [expandedNotifs, setExpandedNotifs] = useState({});
   const [eligibilityHistory, setEligibilityHistory] = useState([]);
+  const [placementTimeline, setPlacementTimeline] = useState([]);
+  const [remarksInput, setRemarksInput] = useState('');
+  const [updatingStatus, setUpdatingStatus] = useState(false);
   const [analyticsData, setAnalyticsData] = useState(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -255,6 +258,50 @@ const TPODashboard = () => {
     }
   };
 
+  const handleUpdatePlacementStatus = async (newStatus) => {
+    if (!selectedStudent) return;
+    setUpdatingStatus(true);
+    try {
+      const res = await api.put(`/tpo/student/${selectedStudent}/placement-status`, {
+        placementStatus: newStatus,
+        remarks: remarksInput
+      });
+
+      // Reload timeline and update student profile state
+      const timelineRes = await api.get(`/tpo/student/${selectedStudent}/placement-timeline`);
+      setPlacementTimeline(timelineRes.data || []);
+      
+      // Update in studentProfileData state
+      if (studentProfileData && studentProfileData.student) {
+        setStudentProfileData({
+          ...studentProfileData,
+          student: {
+            ...studentProfileData.student,
+            placementStatus: newStatus
+          }
+        });
+      }
+
+      // Also update in allStudents list
+      setAllStudents(allStudents.map(item => item.student._id === selectedStudent ? {
+        ...item,
+        student: {
+          ...item.student,
+          placementStatus: newStatus
+        }
+      } : item));
+
+      setRemarksInput('');
+      setNotificationMessage('Student placement status updated.');
+      setTimeout(() => setNotificationMessage(''), 3000);
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || 'Failed to update placement status.');
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
   const handleBulkActionSubmit = async (actionType, additionalData = {}) => {
     if (selectedSmsStudents.length === 0) {
       alert('Please select at least one student.');
@@ -375,6 +422,24 @@ const TPODashboard = () => {
     document.body.removeChild(link);
   };
 
+  const handleDownloadPlacementReport = async () => {
+    try {
+      const res = await api.get('/tpo/reports/placements', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'text/csv' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Placement_Workflow_Report_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setNotificationMessage('Placement reports downloaded successfully.');
+      setTimeout(() => setNotificationMessage(''), 3000);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to generate placement report.');
+    }
+  };
+
   const handleRemoveStudent = async (studentId) => {
     setProcessingId(studentId);
     setNotificationMessage('');
@@ -473,8 +538,13 @@ const TPODashboard = () => {
     setSelectedStudent(studentId);
     setProfileModalLoading(true);
     try {
-      const res = await api.get(`/tpo/student/${studentId}`);
-      setStudentProfileData(res.data);
+      const [profileRes, timelineRes] = await Promise.all([
+        api.get(`/tpo/student/${studentId}`),
+        api.get(`/tpo/student/${studentId}/placement-timeline`)
+      ]);
+      setStudentProfileData(profileRes.data);
+      setPlacementTimeline(timelineRes.data || []);
+      setRemarksInput('');
     } catch (err) {
       console.error(err);
       alert('Failed to fetch student profile details.');
@@ -1793,6 +1863,24 @@ const TPODashboard = () => {
                       >
                         📥 Export {selectedSmsStudents.length > 0 ? 'Selected' : 'All'} CSV
                       </button>
+                      <button
+                        onClick={handleDownloadPlacementReport}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          background: 'var(--navy-mid)',
+                          border: 'none',
+                          color: '#fff',
+                          padding: '6px 12px',
+                          borderRadius: '4px',
+                          fontSize: '13px',
+                          cursor: 'pointer',
+                          fontWeight: '600'
+                        }}
+                      >
+                        📊 Placement Reports CSV
+                      </button>
                     </div>
                   </div>
 
@@ -2801,7 +2889,7 @@ const TPODashboard = () => {
                 <h3 style={{ margin: 0, color: 'var(--navy-deep)' }}>Loading Profile...</h3>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                     <h3 style={{ margin: 0, fontFamily: 'var(--font-display)', color: 'var(--navy-deep)', fontSize: '24px' }}>
                       {studentProfileData?.student?.name}
                     </h3>
@@ -2815,6 +2903,17 @@ const TPODashboard = () => {
                       textTransform: 'uppercase'
                     }}>
                       {studentProfileData?.student?.verified ? 'Verified' : 'Pending Verification'}
+                    </span>
+                    <span style={{
+                      fontSize: '11px',
+                      fontWeight: 'bold',
+                      backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                      color: '#3b82f6',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      textTransform: 'uppercase'
+                    }}>
+                      Status: {studentProfileData?.student?.placementStatus || 'Registered'}
                     </span>
                   </div>
                   <span style={{ color: 'var(--slate)', fontSize: '0.9rem' }}>
@@ -3040,96 +3139,70 @@ const TPODashboard = () => {
                   )}
                 </div>
 
+                {/* Manual Placement Status Upgrader */}
+                <div style={{
+                  border: '1px solid var(--border)',
+                  padding: '16px',
+                  borderRadius: '8px',
+                  backgroundColor: 'var(--bg-surface)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px'
+                }}>
+                  <h4 style={{ margin: 0, fontFamily: 'var(--font-display)', color: 'var(--navy-deep)', fontSize: '14px', fontWeight: 600 }}>
+                    🛠️ Update Placement status
+                  </h4>
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: '180px' }}>
+                      <label className="form-label" style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-secondary)' }}>Workflow Status</label>
+                      <select
+                        className="form-select"
+                        value={studentProfileData?.student?.placementStatus || 'Registered'}
+                        onChange={(e) => handleUpdatePlacementStatus(e.target.value)}
+                        disabled={updatingStatus}
+                        style={{ margin: 0, width: '100%', height: '36px', fontSize: '13px', border: '1px solid var(--border)', borderRadius: '4px' }}
+                      >
+                        <option value="Registered">Registered</option>
+                        <option value="Eligible">Eligible</option>
+                        <option value="Applied">Applied</option>
+                        <option value="Assessment Completed">Assessment Completed</option>
+                        <option value="Interview Scheduled">Interview Scheduled</option>
+                        <option value="Interview Completed">Interview Completed</option>
+                        <option value="Selected">Selected</option>
+                        <option value="Rejected">Rejected</option>
+                        <option value="Offer Released">Offer Released</option>
+                        <option value="Offer Accepted">Offer Accepted</option>
+                        <option value="Placed">Placed</option>
+                      </select>
+                    </div>
+
+                    <div style={{ flex: 2, minWidth: '220px' }}>
+                      <label className="form-label" style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-secondary)' }}>Transition Remarks / Reason</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Add transition notes (e.g. cleared round 1)"
+                        value={remarksInput}
+                        onChange={(e) => setRemarksInput(e.target.value)}
+                        style={{ margin: 0, width: '100%', height: '36px', fontSize: '13px' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 {/* Student Timeline Progression */}
                 <div>
                   <h4 style={{ margin: '0 0 16px 0', fontFamily: 'var(--font-display)', color: 'var(--navy-deep)', borderBottom: '1px solid var(--slate-light)', paddingBottom: '6px' }}>
                     Student Activity Timeline
                   </h4>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingLeft: '8px', borderLeft: '2px solid var(--border)', marginLeft: '12px' }}>
-                    {/* Event 1: Registered */}
-                    <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <div style={{
-                        position: 'absolute',
-                        left: '-15px',
-                        top: '4px',
-                        width: '12px',
-                        height: '12px',
-                        borderRadius: '50%',
-                        backgroundColor: 'var(--navy-mid)',
-                        border: '3px solid var(--bg-card)'
-                      }} />
-                      <strong style={{ fontSize: '13px', color: 'var(--navy-deep)' }}>Account Registered</strong>
-                      <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                        Joined HireLoop system on {new Date(studentProfileData?.student?.createdAt).toLocaleDateString()}
+                    {placementTimeline.length === 0 ? (
+                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                        No status transitions recorded yet.
                       </span>
-                    </div>
-
-                    {/* Event 2: Resume */}
-                    {(studentProfileData?.student?.resumeBase64 || studentProfileData?.student?.resumeFileName) && (
-                      <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <div style={{
-                          position: 'absolute',
-                          left: '-15px',
-                          top: '4px',
-                          width: '12px',
-                          height: '12px',
-                          borderRadius: '50%',
-                          backgroundColor: '#10b981',
-                          border: '3px solid var(--bg-card)'
-                        }} />
-                        <strong style={{ fontSize: '13px', color: '#10b981' }}>Resume Uploaded</strong>
-                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                          File: {studentProfileData.student.resumeFileName || 'resume.pdf'}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Event 3: Applications */}
-                    {studentProfileData?.applications && studentProfileData.applications.length > 0 && (
-                      <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <div style={{
-                          position: 'absolute',
-                          left: '-15px',
-                          top: '4px',
-                          width: '12px',
-                          height: '12px',
-                          borderRadius: '50%',
-                          backgroundColor: '#f59e0b',
-                          border: '3px solid var(--bg-card)'
-                        }} />
-                        <strong style={{ fontSize: '13px', color: '#f59e0b' }}>Job Applications Initiated</strong>
-                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                          First application submitted on {new Date(studentProfileData.applications[studentProfileData.applications.length - 1].appliedAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Event 4: Placed */}
-                    {studentProfileData?.applications?.some(a => a.status === 'Selected') && (
-                      <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <div style={{
-                          position: 'absolute',
-                          left: '-15px',
-                          top: '4px',
-                          width: '12px',
-                          height: '12px',
-                          borderRadius: '50%',
-                          backgroundColor: '#10b981',
-                          border: '3px solid var(--bg-card)',
-                          boxShadow: '0 0 8px rgba(16, 185, 129, 0.4)'
-                        }} />
-                        <strong style={{ fontSize: '13px', color: '#10b981' }}>🎉 Placed successfully</strong>
-                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                          Offered accepted for job posting: {studentProfileData.applications.find(a => a.status === 'Selected').jobDescription?.title}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Eligibility history items */}
-                    {eligibilityHistory
-                      .filter(item => item.student?._id === studentProfileData?.student?._id)
-                      .map((item) => (
-                        <div key={item._id} style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    ) : (
+                      placementTimeline.map((item, idx) => (
+                        <div key={item._id || idx} style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                           <div style={{
                             position: 'absolute',
                             left: '-15px',
@@ -3137,25 +3210,23 @@ const TPODashboard = () => {
                             width: '12px',
                             height: '12px',
                             borderRadius: '50%',
-                            backgroundColor: item.newStatus === 'Not Eligible' ? '#ef4444' : '#10b981',
+                            backgroundColor: item.newStatus === 'Placed' || item.newStatus === 'Selected' ? '#10b981' : item.newStatus === 'Rejected' ? '#ef4444' : '#3b82f6',
                             border: '3px solid var(--bg-card)'
                           }} />
-                          <strong style={{ fontSize: '13px', color: item.newStatus === 'Not Eligible' ? '#ef4444' : '#10b981' }}>
-                            Eligibility Change: {item.jobDescription?.companyName || 'N/A'}
-                          </strong>
-                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                            Status shifted from "{item.oldStatus}" to "{item.newStatus}" due to profile update.
-                          </span>
-                          {item.reason && (
-                            <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                              Reason: {item.reason}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
+                              Status shifted to: {item.newStatus}
+                            </strong>
+                            <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                              {new Date(item.createdAt).toLocaleString()}
                             </span>
-                          )}
-                          <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                            {new Date(item.createdAt).toLocaleString()}
+                          </div>
+                          <span style={{ fontSize: '11.5px', color: 'var(--text-secondary)' }}>
+                            {item.remarks || `Status transitioned from ${item.oldStatus} to ${item.newStatus}.`} (By: {item.changedBy.toUpperCase()})
                           </span>
                         </div>
-                      ))}
+                      ))
+                    )}
                   </div>
                 </div>
               </div>

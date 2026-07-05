@@ -3,6 +3,7 @@ import AssessmentResult from '../models/AssessmentResult.js';
 import JobDescription from '../models/JobDescription.js';
 import Application from '../models/Application.js';
 import { GoogleGenAI } from '@google/genai';
+import { updateStudentPlacementStatus } from '../utils/placementWorkflow.js';
 
 /**
  * Generate assessment questions using Gemini AI based on the Job Description.
@@ -403,6 +404,7 @@ export const submitAssessment = async (req, res) => {
         application.status = 'Rejected';
       }
       await application.save();
+      await updateStudentPlacementStatus(req.user.id, 'Assessment Completed');
     }
 
     return res.status(200).json({
