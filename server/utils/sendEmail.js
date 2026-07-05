@@ -13,7 +13,7 @@ const sendEmail = async (to, subject, html) => {
     });
 
     const mailOptions = {
-      from: `"HireLoop" <${process.env.SMTP_USER}>`,
+      from: `"HireLoop" <${process.env.EMAIL_FROM || process.env.SMTP_USER}>`,
       to,
       subject,
       html,
