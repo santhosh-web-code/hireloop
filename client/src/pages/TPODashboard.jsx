@@ -87,6 +87,7 @@ const TPODashboard = () => {
     setError('');
     try {
       setAnalyticsLoading(true);
+      console.log("Fetching all students...");
       const [statsRes, hrsRes, jdsRes, appsRes, activeHRsRes, studentsRes, notificationsRes, historyRes, analyticsRes] = await Promise.all([
         api.get('/tpo/dashboard-stats'),
         api.get('/tpo/pending-hrs'),
@@ -98,6 +99,7 @@ const TPODashboard = () => {
         api.get('/tpo/eligibility-history'),
         api.get('/tpo/analytics'),
       ]);
+      console.log("Students fetched:", studentsRes.data?.length, studentsRes.data);
       setStats(statsRes.data);
       setPendingHRs(hrsRes.data || []);
       setPendingJDs(jdsRes.data || []);
@@ -109,7 +111,7 @@ const TPODashboard = () => {
       setAnalyticsData(analyticsRes.data || null);
       setAnalyticsLoading(false);
     } catch (err) {
-      console.error(err);
+      console.error("Students fetch error:", err);
       setError('Failed to fetch dashboard metrics.');
     } finally {
       setLoading(false);
