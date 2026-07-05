@@ -1,29 +1,37 @@
-import nodemailer from 'nodemailer';
-
 const sendEmail = async (to, subject, html) => {
   try {
-    const transporter = nodemailer.createTransport({
-      host: 'smtp-relay.brevo.com',
-      port: 587,
-      secure: false,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'content-type': 'application/json',
+        'api-key': process.env.BREVO_API_KEY
       },
+      body: JSON.stringify({
+        sender: {
+          name: "HireLoop",
+          email: process.env.EMAIL_FROM
+        },
+        to: [
+          {
+            email: to
+          }
+        ],
+        subject: subject,
+        htmlContent: html
+      })
     });
 
-    const mailOptions = {
-      from: `"HireLoop" <${process.env.EMAIL_FROM || process.env.SMTP_USER}>`,
-      to,
-      subject,
-      html,
-    };
-    await transporter.verify();
-    console.log("Brevo SMTP Connected");
+    if (!response.ok) {
+      const errorBody = await response.text();
+      console.error(`Brevo Email API Error status: ${response.status}`);
+      console.error(`Brevo Email API Error body: ${errorBody}`);
+      return null;
+    }
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`Email sent successfully: ${info.messageId}`);
-    return info;
+    const data = await response.json();
+    console.log("Brevo Email API Success");
+    return data;
   } catch (error) {
     console.error(`Error sending email to ${to}:`, error);
     return null;
