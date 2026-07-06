@@ -5,7 +5,7 @@ import api from '../services/api';
 import Navbar from '../components/Navbar';
 import {
   Search, Clipboard, Bell, Edit, Trash2, ShieldAlert,
-  ShieldCheck, Download, ChevronLeft, ChevronRight, User, Check, AlertTriangle
+  ShieldCheck, Download, ChevronLeft, ChevronRight, User, Check, AlertTriangle, Star
 } from 'lucide-react';
 import './TPODashboard.css';
 
@@ -2271,10 +2271,28 @@ const TPODashboard = () => {
                                     <td style={{ padding: '12px', textAlign: 'center' }}>
                                       <button
                                         onClick={() => handleToggleFavorite(s._id, s.isFavorite)}
-                                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', padding: 0 }}
+                                        style={{
+                                          background: 'none',
+                                          border: 'none',
+                                          cursor: 'pointer',
+                                          padding: '4px',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          transition: 'transform 0.15s ease'
+                                        }}
                                         title={s.isFavorite ? 'Remove star' : 'Star favorite'}
                                       >
-                                        {s.isFavorite ? '⭐' : '☆'}
+                                        <Star
+                                          size={21}
+                                          fill={s.isFavorite ? '#e8b84b' : 'none'}
+                                          color={s.isFavorite ? '#e8b84b' : 'var(--text-secondary)'}
+                                          strokeWidth={2}
+                                          style={{
+                                            filter: 'drop-shadow(0 0 1px rgba(255, 255, 255, 0.45))',
+                                            transition: 'all 0.15s ease'
+                                          }}
+                                        />
                                       </button>
                                     </td>
                                     <td style={{ padding: '12px' }}>
