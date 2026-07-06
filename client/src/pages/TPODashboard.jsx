@@ -94,7 +94,7 @@ const TPODashboard = () => {
         api.get('/jd/pending'),
         api.get('/tpo/all-applications'),
         api.get('/tpo/hrs'),
-        api.get('/tpo/students'),
+        api.get('/tpo/all-students'),
         api.get('/tpo/notifications'),
         api.get('/tpo/eligibility-history'),
         api.get('/tpo/analytics'),
@@ -322,7 +322,7 @@ const TPODashboard = () => {
         setAllStudents(allStudents.filter(item => !selectedSmsStudents.includes(item.student._id)));
       } else {
         // reload stats / students list
-        const studentsRes = await api.get('/tpo/students');
+        const studentsRes = await api.get('/tpo/all-students');
         setAllStudents(studentsRes.data || []);
       }
       

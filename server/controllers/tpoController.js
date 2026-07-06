@@ -133,26 +133,11 @@ export const getAllStudents = async (req, res) => {
             select: 'title companyName'
           });
 
+        const studentObj = student.toObject();
+        delete studentObj.password;
+
         return {
-          student: {
-            _id: student._id,
-            name: student.name,
-            email: student.email,
-            studentId: student.studentId,
-            branch: student.branch,
-            degreeCGPA: student.degreeCGPA,
-            passedOutYear: student.passedOutYear,
-            tenthPercent: student.tenthPercent,
-            twelfthPercent: student.twelfthPercent,
-            backlogs: student.backlogs,
-            skills: student.skills,
-            collegeName: student.collegeName,
-            bio: student.bio,
-            resumeBase64: student.resumeBase64,
-            resumeFileName: student.resumeFileName,
-            isEmailVerified: student.isEmailVerified,
-            createdAt: student.createdAt,
-          },
+          student: studentObj,
           applications: apps.map((app) => ({
             _id: app._id,
             jobDescription: {
