@@ -59,13 +59,13 @@
   --text-on-dark: #fafafa;
 
   --border: #27272a;
-  --border-focus: #6366f1;
+  --border-focus: #e8b84b;
 
-  --accent: #f59e0b;
-  --accent-dark: #d97706;
-  --brand: #6366f1;
-  --brand-mid: #4f46e5;
-  --brand-light: #818cf8;
+  --accent: #e8b84b;
+  --accent-dark: #c9962c;
+  --brand: #ffffff;
+  --brand-mid: #e4e4e7;
+  --brand-light: #a1a1aa;
 
   --success: #10b981;
   --danger: #ef4444;
