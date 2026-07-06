@@ -1890,9 +1890,9 @@ const TPODashboard = () => {
                           display: 'flex',
                           alignItems: 'center',
                           gap: '6px',
-                          background: 'var(--navy-mid)',
+                          background: 'var(--bg-active-tab)',
                           border: 'none',
-                          color: '#fff',
+                          color: 'var(--text-active-tab)',
                           padding: '6px 12px',
                           borderRadius: '4px',
                           fontSize: '13px',
@@ -2085,8 +2085,8 @@ const TPODashboard = () => {
                         onClick={() => { setSmsCgpaFilter(smsCgpaFilter === '8.0' ? 'All' : '8.0'); setSmsCurrentPage(1); }}
                         style={{
                           border: '1px solid var(--border)',
-                          backgroundColor: smsCgpaFilter === '8.0' ? 'var(--navy-mid)' : 'var(--bg-card)',
-                          color: smsCgpaFilter === '8.0' ? '#FFFFFF' : 'var(--text-primary)',
+                          backgroundColor: smsCgpaFilter === '8.0' ? 'var(--bg-active-tab)' : 'var(--bg-card)',
+                          color: smsCgpaFilter === '8.0' ? 'var(--text-active-tab)' : 'var(--text-primary)',
                           padding: '4px 10px',
                           borderRadius: '16px',
                           fontSize: '11.5px',
@@ -2100,8 +2100,8 @@ const TPODashboard = () => {
                         onClick={() => { setSmsBacklogFilter(smsBacklogFilter === 'No Backlogs' ? 'All' : 'No Backlogs'); setSmsCurrentPage(1); }}
                         style={{
                           border: '1px solid var(--border)',
-                          backgroundColor: smsBacklogFilter === 'No Backlogs' ? 'var(--navy-mid)' : 'var(--bg-card)',
-                          color: smsBacklogFilter === 'No Backlogs' ? '#FFFFFF' : 'var(--text-primary)',
+                          backgroundColor: smsBacklogFilter === 'No Backlogs' ? 'var(--bg-active-tab)' : 'var(--bg-card)',
+                          color: smsBacklogFilter === 'No Backlogs' ? 'var(--text-active-tab)' : 'var(--text-primary)',
                           padding: '4px 10px',
                           borderRadius: '16px',
                           fontSize: '11.5px',
@@ -2115,8 +2115,8 @@ const TPODashboard = () => {
                         onClick={() => { setSmsFavFilter(smsFavFilter === 'Favorites Only' ? 'All' : 'Favorites Only'); setSmsCurrentPage(1); }}
                         style={{
                           border: '1px solid var(--border)',
-                          backgroundColor: smsFavFilter === 'Favorites Only' ? 'var(--navy-mid)' : 'var(--bg-card)',
-                          color: smsFavFilter === 'Favorites Only' ? '#FFFFFF' : 'var(--text-primary)',
+                          backgroundColor: smsFavFilter === 'Favorites Only' ? 'var(--bg-active-tab)' : 'var(--bg-card)',
+                          color: smsFavFilter === 'Favorites Only' ? 'var(--text-active-tab)' : 'var(--text-primary)',
                           padding: '4px 10px',
                           borderRadius: '16px',
                           fontSize: '11.5px',
@@ -2130,8 +2130,8 @@ const TPODashboard = () => {
                         onClick={() => { setSmsBlacklistFilter(smsBlacklistFilter === 'Blacklisted Only' ? 'All' : 'Blacklisted Only'); setSmsCurrentPage(1); }}
                         style={{
                           border: '1px solid var(--border)',
-                          backgroundColor: smsBlacklistFilter === 'Blacklisted Only' ? 'var(--navy-mid)' : 'var(--bg-card)',
-                          color: smsBlacklistFilter === 'Blacklisted Only' ? '#FFFFFF' : 'var(--text-primary)',
+                          backgroundColor: smsBlacklistFilter === 'Blacklisted Only' ? 'var(--bg-active-tab)' : 'var(--bg-card)',
+                          color: smsBlacklistFilter === 'Blacklisted Only' ? 'var(--text-active-tab)' : 'var(--text-primary)',
                           padding: '4px 10px',
                           borderRadius: '16px',
                           fontSize: '11.5px',
@@ -2145,8 +2145,8 @@ const TPODashboard = () => {
                         onClick={() => { setSmsResumeFilter(smsResumeFilter === 'Has Resume' ? 'All' : 'Has Resume'); setSmsCurrentPage(1); }}
                         style={{
                           border: '1px solid var(--border)',
-                          backgroundColor: smsResumeFilter === 'Has Resume' ? 'var(--navy-mid)' : 'var(--bg-card)',
-                          color: smsResumeFilter === 'Has Resume' ? '#FFFFFF' : 'var(--text-primary)',
+                          backgroundColor: smsResumeFilter === 'Has Resume' ? 'var(--bg-active-tab)' : 'var(--bg-card)',
+                          color: smsResumeFilter === 'Has Resume' ? 'var(--text-active-tab)' : 'var(--text-primary)',
                           padding: '4px 10px',
                           borderRadius: '16px',
                           fontSize: '11.5px',
