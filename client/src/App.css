@@ -44,8 +44,8 @@
 }
 
 body {
-  background-color: var(--neutral-light);
-  color: #334155;
+  background-color: var(--bg-page);
+  color: var(--text-primary);
   margin: 0;
   min-height: 100vh;
   transition: background-color 0.3s ease;
@@ -65,7 +65,7 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
   letter-spacing: -0.025em;
   margin: 0 0 0.5em;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 /* Layout Utilities */
@@ -237,14 +237,14 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn-secondary {
-  background-color: #ffffff;
-  border: 1.5px solid var(--border-light);
-  color: #475569;
+  background-color: var(--bg-card);
+  border: 1.5px solid var(--border);
+  color: var(--text-secondary);
 }
 
 .btn-secondary:hover {
-  background-color: #f8fafc;
-  border-color: #cbd5e1;
+  background-color: var(--bg-surface);
+  border-color: var(--border-focus);
 }
 
 .btn-danger {
@@ -300,8 +300,8 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Navbar */
 .navbar {
-  background-color: #ffffff;
-  border-bottom: 1px solid var(--border-light);
+  background-color: var(--bg-card);
+  border-bottom: 1px solid var(--border);
   padding: 1rem 2rem;
   display: flex;
   justify-content: space-between;
@@ -384,8 +384,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .stats-card {
-  background-color: #ffffff;
-  border: 1px solid var(--border-light);
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.5rem;
   box-shadow: var(--shadow-sm);
@@ -402,15 +402,15 @@ h1, h2, h3, h4, h5, h6 {
 
 .stats-label {
   font-size: 0.88rem;
-  color: #64748b;
+  color: var(--text-secondary);
   text-transform: uppercase;
   font-weight: 600;
   letter-spacing: 0.05em;
 }
 
 .panel-card {
-  background-color: #ffffff;
-  border: 1px solid var(--border-light);
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 2rem;
   box-shadow: var(--shadow-sm);
@@ -495,10 +495,10 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Job Description Cards */
 .jd-card {
-  border: 1.5px solid var(--border-light);
+  border: 1.5px solid var(--border);
   border-radius: 1rem;
   padding: 1.75rem;
-  background-color: #ffffff;
+  background-color: var(--bg-card);
   box-shadow: var(--shadow-sm);
   transition: all 0.25s ease;
   display: flex;
@@ -561,7 +561,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .modal-content {
-  background-color: #ffffff;
+  background-color: var(--bg-card);
   border-radius: 1.25rem;
   max-width: 600px;
   width: 100%;
@@ -576,8 +576,8 @@ h1, h2, h3, h4, h5, h6 {
   max-width: 800px;
   margin: 0 auto;
   padding: 2rem;
-  background-color: #ffffff;
-  border: 1px solid var(--border-light);
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
   border-radius: 1.25rem;
   box-shadow: var(--shadow-md);
 }
@@ -643,9 +643,9 @@ h1, h2, h3, h4, h5, h6 {
   width: 84px;
   height: 84px;
   border-radius: 50%;
-  background-color: #ffffff;
+  background-color: var(--bg-card);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #0f172a;
+  color: var(--text-primary);
 }

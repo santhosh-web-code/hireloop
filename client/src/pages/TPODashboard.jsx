@@ -3655,7 +3655,7 @@ const TPODashboard = () => {
                 <button onClick={() => setResumeViewerModal({ isOpen: false, resumeBase64: '', fileName: '' })} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '24px', cursor: 'pointer' }}>&times;</button>
               </div>
             </div>
-            <div style={{ padding: '16px', backgroundColor: '#f8fafc', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+            <div style={{ padding: '16px', backgroundColor: 'var(--bg-surface)', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
               {resumeViewerModal.resumeBase64.startsWith('data:application/pdf') || resumeViewerModal.resumeBase64.startsWith('data:image/') ? (
                 <iframe
                   src={resumeViewerModal.resumeBase64}
@@ -3663,7 +3663,7 @@ const TPODashboard = () => {
                   title="Resume Viewer Frame"
                 />
               ) : (
-                <div style={{ width: '100%', maxHeight: '550px', overflowY: 'auto', backgroundColor: '#ffffff', border: '1px solid var(--border)', padding: '24px', borderRadius: '6px', fontFamily: 'monospace', fontSize: '12.5px', whiteSpace: 'pre-wrap', color: '#1e293b' }}>
+                <div style={{ width: '100%', maxHeight: '550px', overflowY: 'auto', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', padding: '24px', borderRadius: '6px', fontFamily: 'monospace', fontSize: '12.5px', whiteSpace: 'pre-wrap', color: 'var(--text-primary)' }}>
                   <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '12px' }}>
                     Note: PDF plugin not supported or text resume detected. Content preview below:
                   </span>

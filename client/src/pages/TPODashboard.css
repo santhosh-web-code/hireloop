@@ -335,3 +335,15 @@
     white-space: nowrap !important;
   }
 }
+
+.tpo-content-panel {
+  padding: 2.5rem 3rem !important;
+  max-width: 1400px;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .tpo-content-panel {
+    padding: 1.5rem !important;
+  }
+}
