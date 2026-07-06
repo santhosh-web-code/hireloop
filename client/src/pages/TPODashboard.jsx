@@ -993,9 +993,9 @@ const TPODashboard = () => {
                     gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
                     gap: '16px'
                   }}>
-                    <div className="stats-card" style={{ borderLeft: '4px solid #3b82f6' }}>
+                    <div className="stats-card" style={{ borderLeft: '4px solid var(--primary)' }}>
                       <span className="stats-label">Total Students</span>
-                      <span className="stats-val" style={{ color: '#3b82f6' }}>{analyticsData.totalStudents}</span>
+                      <span className="stats-val" style={{ color: 'var(--primary)' }}>{analyticsData.totalStudents}</span>
                     </div>
                     <div className="stats-card" style={{ borderLeft: '4px solid #10b981' }}>
                       <span className="stats-label">Placed Students</span>
@@ -1021,9 +1021,9 @@ const TPODashboard = () => {
                       <span className="stats-label">Highest Package</span>
                       <span className="stats-val" style={{ color: '#10b981', fontSize: '1.6rem' }}>{analyticsData.highestPackage}</span>
                     </div>
-                    <div className="stats-card" style={{ borderLeft: '4px solid #3b82f6' }}>
+                    <div className="stats-card" style={{ borderLeft: '4px solid var(--primary)' }}>
                       <span className="stats-label">Average Package</span>
-                      <span className="stats-val" style={{ color: '#3b82f6', fontSize: '1.6rem' }}>{analyticsData.averagePackage}</span>
+                      <span className="stats-val" style={{ color: 'var(--primary)', fontSize: '1.6rem' }}>{analyticsData.averagePackage}</span>
                     </div>
                   </div>
 
@@ -1086,7 +1086,7 @@ const TPODashboard = () => {
                             <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                               <span style={{ width: '60px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{b.branch}</span>
                               <div style={{ flex: 1, height: '12px', backgroundColor: 'var(--bg-surface)', borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--border)' }}>
-                                <div style={{ width: `${b.rate}%`, height: '100%', backgroundColor: '#3b82f6', borderRadius: '10px', transition: 'width 0.8s ease' }} />
+                                <div style={{ width: `${b.rate}%`, height: '100%', backgroundColor: 'var(--primary)', borderRadius: '10px', transition: 'width 0.8s ease' }} />
                               </div>
                               <span style={{ width: '40px', fontSize: '13px', fontWeight: 700, textAlign: 'right', color: 'var(--text-primary)' }}>{b.rate}%</span>
                               <span style={{ fontSize: '11px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>({b.placed}/{b.total})</span>
@@ -1110,7 +1110,7 @@ const TPODashboard = () => {
                         <div>
                           <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end', marginBottom: '8px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-secondary)' }}>
-                              <span style={{ display: 'inline-block', width: '12px', height: '3px', backgroundColor: '#3b82f6' }} /> Applications
+                              <span style={{ display: 'inline-block', width: '12px', height: '3px', backgroundColor: 'var(--primary)' }} /> Applications
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-secondary)' }}>
                               <span style={{ display: 'inline-block', width: '12px', height: '3px', backgroundColor: '#10b981' }} /> Placements
@@ -1137,7 +1137,7 @@ const TPODashboard = () => {
                                     ))}
 
                                     {/* Line paths */}
-                                    <polyline fill="none" stroke="#3b82f6" strokeWidth="3" points={applicationsPoints} />
+                                    <polyline fill="none" stroke="var(--primary)" strokeWidth="3" points={applicationsPoints} />
                                     <polyline fill="none" stroke="#10b981" strokeWidth="3" points={placementsPoints} />
 
                                     {/* Dots */}
@@ -1147,8 +1147,8 @@ const TPODashboard = () => {
                                       const yPlac = 160 - ((m.placements || 0) / maxVal) * 120;
                                       return (
                                         <g key={idx}>
-                                          <circle cx={x} cy={yApp} r="4" fill="#3b82f6" stroke="#ffffff" strokeWidth="2" />
-                                          <circle cx={x} cy={yPlac} r="4" fill="#10b981" stroke="#ffffff" strokeWidth="2" />
+                                          <circle cx={x} cy={yApp} r="4" fill="var(--primary)" stroke="var(--bg-card)" strokeWidth="2" />
+                                          <circle cx={x} cy={yPlac} r="4" fill="#10b981" stroke="var(--bg-card)" strokeWidth="2" />
                                           <text x={x} y="180" fontSize="9" fill="var(--text-secondary)" textAnchor="middle">
                                             {m.monthName}
                                           </text>
@@ -1295,9 +1295,9 @@ const TPODashboard = () => {
                 {/* Left Column */}
                 <div style={{ flex: '2 1 650px', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                   <div className="tpo-stats-grid">
-                    <div className="stats-card" style={{ borderLeft: '4px solid #3b82f6' }}>
+                    <div className="stats-card" style={{ borderLeft: '4px solid var(--primary)' }}>
                       <span className="stats-label">Total Students</span>
-                      <span className="stats-val" style={{ color: '#3b82f6' }}>{stats.totalStudents}</span>
+                      <span className="stats-val" style={{ color: 'var(--primary)' }}>{stats.totalStudents}</span>
                     </div>
                     <div className="stats-card" style={{ borderLeft: '4px solid #10b981' }}>
                       <span className="stats-label">Total HRs</span>
@@ -2953,8 +2953,8 @@ const TPODashboard = () => {
                     <span style={{
                       fontSize: '11px',
                       fontWeight: 'bold',
-                      backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                      color: '#3b82f6',
+                      backgroundColor: 'var(--primary-light)',
+                      color: 'var(--primary)',
                       padding: '2px 8px',
                       borderRadius: '4px',
                       textTransform: 'uppercase'
@@ -3256,7 +3256,7 @@ const TPODashboard = () => {
                             width: '12px',
                             height: '12px',
                             borderRadius: '50%',
-                            backgroundColor: item.newStatus === 'Placed' || item.newStatus === 'Selected' ? '#10b981' : item.newStatus === 'Rejected' ? '#ef4444' : '#3b82f6',
+                            backgroundColor: item.newStatus === 'Placed' || item.newStatus === 'Selected' ? '#10b981' : item.newStatus === 'Rejected' ? '#ef4444' : 'var(--primary)',
                             border: '3px solid var(--bg-card)'
                           }} />
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
