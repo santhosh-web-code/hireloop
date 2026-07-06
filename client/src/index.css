@@ -44,6 +44,8 @@
   --input-bg: var(--bg-input);
   --border-color: var(--border);
   --text-on-navy: var(--text-on-dark);
+  --bg-active-tab: var(--navy-mid);
+  --text-active-tab: #ffffff;
 }
 
 [data-theme="dark"] {
@@ -70,6 +72,8 @@
   --success: #10b981;
   --danger: #ef4444;
   --warning: #f59e0b;
+  --bg-active-tab: var(--bg-surface);
+  --text-active-tab: var(--accent);
 }
 
 /* Global reset */
