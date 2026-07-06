@@ -38,28 +38,28 @@
 }
 
 [data-theme="dark"] {
-  --primary: #388BFD; /* Matching TPO royal blue --brand-mid */
-  --primary-hover: #58A6FF;
-  --primary-light: rgba(56, 139, 253, 0.15);
-  --primary-glow: rgba(56, 139, 253, 0.25);
+  --primary: #6366f1; /* Indigo-500 */
+  --primary-hover: #818cf8; /* Indigo-400 */
+  --primary-light: rgba(99, 102, 241, 0.15);
+  --primary-glow: rgba(99, 102, 241, 0.25);
   
-  --secondary: #1F6FEB;
-  --secondary-hover: #388BFD;
+  --secondary: #27272a; /* Zinc-800 */
+  --secondary-hover: #3f3f46; /* Zinc-700 */
   
-  --neutral-dark: #0B0F17;
-  --neutral-light: #0B0F17;
+  --neutral-dark: #09090b;
+  --neutral-light: #09090b;
   
-  --card-bg-light: #1E293B;
-  --card-bg-dark: #1E293B;
+  --card-bg-light: #18181b;
+  --card-bg-dark: #18181b;
   
-  --border-light: #3E4E68;
-  --border-dark: #3E4E68;
+  --border-light: #27272a;
+  --border-dark: #27272a;
 
   /* Subtle white borders / glows for premium visibility in dark theme */
-  --shadow-sm: 0 0 0 1.5px rgba(255, 255, 255, 0.12), 0 2px 10px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 0 0 1.5px rgba(255, 255, 255, 0.12), 0 8px 32px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 0 0 2px rgba(255, 255, 255, 0.18), 0 20px 48px rgba(0, 0, 0, 0.6);
-  --shadow-glow: 0 0 20px rgba(56, 139, 253, 0.35);
+  --shadow-sm: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 0 0 1px rgba(255, 255, 255, 0.07), 0 8px 30px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 0 0 1.5px rgba(255, 255, 255, 0.1), 0 20px 40px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 15px rgba(99, 102, 241, 0.25);
 }
 
 /* Global Reset Overrides */
